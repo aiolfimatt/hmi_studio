@@ -1,0 +1,16 @@
+# Keep the build context small and secret-free.
+**/node_modules
+backend/server.js
+frontend/dist
+dist-portable
+data
+.git
+.claude
+.vscode
+.idea
+*.log
+config/conf.*.json
+config/conf.local.json
+sbom-*.json
+**/*.md
+!config/README.md

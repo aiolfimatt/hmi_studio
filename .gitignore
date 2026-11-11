@@ -1,0 +1,46 @@
+# ── Dependencies ──────────────────────────────────────────────
+node_modules/
+backend/node_modules
+frontend/node_modules
+test-bench/node_modules
+
+# ── Build output ──────────────────────────────────────────────
+# Bundled backend (built by `npm run bundle` / package.ps1) — a generated
+# single-file artifact, not source.
+backend/server.js
+# Built frontend SPA (produced by `vite build`).
+frontend/dist
+# Portable deployment package (built by package.ps1).
+/dist-portable
+# Generated SBOMs.
+/sbom-*.json
+
+# ── Runtime & project data ────────────────────────────────────
+# The data/ store is seeded on first run and holds local/production state —
+# pages, users, machine config, assets, audit trail, logs. Keep it out of git;
+# only the folder's README is tracked.
+/data/*
+!/data/README.md
+
+# ── Local configuration & secrets ─────────────────────────────
+# config/conf.json is a committed TEMPLATE. Machine-specific copies that carry
+# real secrets (jwt_secret, endpoints) must stay local.
+/config/conf.*.json
+/config/conf.local.json
+.env
+.env.*
+!.env.example
+
+# ── Local tooling / editor state ──────────────────────────────
+.claude/
+.vscode/
+.idea/
+*.log
+
+# ── Internal scratch notes (not part of the project) ──────────
+/missing features.txt
+/what to do for db*.txt
+/event_type hmistudio.txt
+/nuova struttura pacchetto udp.txt
+/lilly example
+/proof_of_concept

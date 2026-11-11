@@ -1,0 +1,21 @@
+{
+  "_comment": "OPC UA test-bench machine config for docker-compose. Mounted read-only over /app/data/machines.json; endpoint uses the compose service name 'opcua'.",
+  "nextId": 2,
+  "rows": [
+    {
+      "id": 1,
+      "name": "Test Bench (OPC UA)",
+      "protocol": "opcua",
+      "scan_interval_ms": 500,
+      "is_active": true,
+      "opcua": {
+        "endpoint": "opc.tcp://opcua:4840",
+        "security_mode": "None",
+        "security_policy": "None",
+        "namespace": 1,
+        "nodes_data": { "nodeid": "ns=1;s=GVL_PLC.PLC_MEM", "base": 0 }
+      },
+      "alarms": { "enabled": true, "opcua_nodeid": "ns=1;s=GVL_PLC.aAlarms", "base_code": 1, "bits_per_word": 32, "poll_interval_ms": 1000 }
+    }
+  ]
+}

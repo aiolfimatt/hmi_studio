@@ -1,0 +1,21 @@
+{
+  "_comment": "OPC UA TEST-BENCH machine config. Points at the bundled test server (test-bench/opcua-server.js, opc.tcp://127.0.0.1:4840). Copy this over data/machines.json and restart the backend to drive the HMI from the test server. NodeIds match the test server's ns=1 nodes.",
+  "nextId": 2,
+  "rows": [
+    {
+      "id": 1,
+      "name": "Test Bench (OPC UA)",
+      "protocol": "opcua",
+      "scan_interval_ms": 500,
+      "is_active": true,
+      "opcua": {
+        "endpoint": "opc.tcp://127.0.0.1:4840",
+        "security_mode": "None",
+        "security_policy": "None",
+        "namespace": 1,
+        "nodes_data": { "nodeid": "ns=1;s=GVL_PLC.PLC_MEM", "base": 0 }
+      },
+      "alarms": { "enabled": true, "opcua_nodeid": "ns=1;s=GVL_PLC.aAlarms", "base_code": 1, "bits_per_word": 32, "poll_interval_ms": 1000 }
+    }
+  ]
+}

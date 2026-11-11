@@ -1,0 +1,13 @@
+{
+  "name": "hmi-studio-opcua-testbench",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Standalone OPC UA test server for exercising HMI Studio without a real PLC",
+  "main": "opcua-server.js",
+  "scripts": {
+    "start": "node opcua-server.js"
+  },
+  "dependencies": {
+    "node-opcua": "^2.187.16"
+  }
+}

@@ -1,0 +1,23 @@
+# HMI Studio — standalone app (production-ish).
+#
+#   HMI_JWT_SECRET=$(openssl rand -base64 48) docker compose up --build
+#   # or put HMI_JWT_SECRET in a .env file (see .env.example)
+#
+# UI + API on http://localhost:3100. Runtime state persists in the named volume;
+# config/ is bind-mounted so you can edit conf.json on the host.
+services:
+  hmi:
+    build: .
+    image: hmi-studio
+    ports:
+      - "3100:3100"
+    environment:
+      # Fails fast if unset — secure by default.
+      HMI_JWT_SECRET: "${HMI_JWT_SECRET:?set a strong secret (see .env.example)}"
+    volumes:
+      - hmi-data:/app/data
+      - ./config:/app/config
+    restart: unless-stopped
+
+volumes:
+  hmi-data:

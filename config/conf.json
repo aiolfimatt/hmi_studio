@@ -1,0 +1,39 @@
+{
+  "logging": {
+    "enabled": true,
+    "dir": "logs",
+    "file": "app.log",
+    "level": "info",
+    "max_size_mb": 2,
+    "max_files": 5,
+    "tee_console": true
+  },
+  "jwt_secret": "change_this_secret_in_production",
+  "jwt_expiry": "8h",
+  "ldap_gateway": {
+    "enabled": false,
+    "url": "http://127.0.0.1:8890/login",
+    "timeout_ms": 8000,
+    "index_base": 1
+  },
+  "simulation": false,
+  "features": {
+    "alarms": true,
+    "event_log": true,
+    "ldap": false
+  },
+  "languages": ["en", "it", "fr", "de", "es"],
+  "default_language": "en",
+  "backend_host": "0.0.0.0",
+  "backend_port": 3100,
+  "frontend_port": 3101,
+  "max_runtime_clients": 0,
+  "security": {
+    "min_password_chars": 4,
+    "password_lifetime_months": 2,
+    "max_failed_attempts": 3,
+    "auto_logout_s": 10,
+    "login_rate_window_s": 60,
+    "login_rate_max": 10
+  }
+}

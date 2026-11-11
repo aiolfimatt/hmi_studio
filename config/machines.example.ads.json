@@ -1,0 +1,18 @@
+{
+  "_comment": "Example machine config (Beckhoff TwinCAT ADS). To use: copy this file over data/machines.json and restart the backend. Machine config is part of the PROJECT and also travels inside a .hmiproj bundle; conf.json holds deployment infra only.",
+  "nextId": 2,
+  "rows": [
+    {
+      "id": 1,
+      "name": "Machine 1",
+      "protocol": "ads",
+      "n_bit": 32,
+      "ams_net_id": "5.98.90.5.1.1",
+      "ads_port": 851,
+      "scan_interval_ms": 500,
+      "is_active": true,
+      "ads_data": { "symbol": "GVL_PLC.PLC_MEM", "base": 0 },
+      "alarms": { "enabled": true, "ads_symbol": "GVL_PLC.aAlarms", "base_code": 1, "bits_per_word": 32, "poll_interval_ms": 1000 }
+    }
+  ]
+}

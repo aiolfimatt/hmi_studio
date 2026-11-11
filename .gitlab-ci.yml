@@ -1,0 +1,82 @@
+# CI pipeline — dependency audit, build verification, and SBOM generation.
+# Covers the CRA readiness items "add to CI" (docs/CRA-READINESS.md):
+# Annex I Part I §1 (no known exploitable vulnerabilities) and
+# Annex II Part II §2/§3 (remediation + regular security testing).
+
+stages:
+  - audit
+  - build
+  - sbom
+
+default:
+  image: node:22
+  interruptible: true
+
+.npm-cache: &npm-cache
+  cache:
+    key:
+      files:
+        - backend/package-lock.json
+        - frontend/package-lock.json
+    paths:
+      - backend/node_modules/
+      - frontend/node_modules/
+      - .npm/
+
+# ── Audit: fail the pipeline on high/critical findings ────────────────
+audit-backend:
+  stage: audit
+  <<: *npm-cache
+  script:
+    - cd backend
+    - npm ci --cache ../.npm --prefer-offline
+    - npm audit --omit=dev --audit-level=high
+
+audit-frontend:
+  stage: audit
+  <<: *npm-cache
+  script:
+    - cd frontend
+    - npm ci --cache ../.npm --prefer-offline
+    - npm audit --audit-level=high
+
+# ── Build: bundled backend + production SPA must compile ──────────────
+build-backend:
+  stage: build
+  <<: *npm-cache
+  script:
+    - cd backend
+    - npm ci --cache ../.npm --prefer-offline
+    - npm run bundle
+  artifacts:
+    paths:
+      - backend/server.js
+    expire_in: 1 week
+
+build-frontend:
+  stage: build
+  <<: *npm-cache
+  script:
+    - cd frontend
+    - npm ci --cache ../.npm --prefer-offline
+    - npm run build
+  artifacts:
+    paths:
+      - frontend/dist/
+    expire_in: 1 week
+
+# ── SBOM: CycloneDX per release tag (archive with the release) ────────
+sbom:
+  stage: sbom
+  <<: *npm-cache
+  rules:
+    - if: $CI_COMMIT_TAG
+    - if: $CI_PIPELINE_SOURCE == "web"   # allow manual runs from the UI
+  script:
+    - cd backend && npm ci --cache ../.npm --prefer-offline && npm run sbom
+    - cd ../frontend && npm ci --cache ../.npm --prefer-offline && npm run sbom
+  artifacts:
+    paths:
+      - sbom-backend.json
+      - sbom-frontend.json
+    expire_in: never

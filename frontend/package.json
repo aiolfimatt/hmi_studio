@@ -1,0 +1,33 @@
+{
+  "name": "hmi-studio-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --port 3101",
+    "build": "vite build",
+    "preview": "vite preview",
+    "sbom": "npx --yes @cyclonedx/cyclonedx-npm --output-format JSON --output-file ../sbom-frontend.json"
+  },
+  "dependencies": {
+    "@ant-design/icons": "^6.3.2",
+    "@dnd-kit/core": "^6.1.0",
+    "@dnd-kit/sortable": "^8.0.0",
+    "antd": "^6.5.0",
+    "axios": "^1.6.7",
+    "lucide-react": "^0.344.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^7.18.5",
+    "recharts": "^2.12.0",
+    "socket.io-client": "^4.7.4",
+    "three": "^0.184.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^6.3.0",
+    "autoprefixer": "^10.4.17",
+    "postcss": "^8.4.35",
+    "tailwindcss": "^3.4.1",
+    "vite": "^8.3.8"
+  }
+}

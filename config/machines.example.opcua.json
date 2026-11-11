@@ -1,0 +1,27 @@
+{
+  "_comment": "Example machine config (OPC UA). To use: copy this file over data/machines.json and restart the backend. Addresses are NodeIds (e.g. \"ns=4;s=MAIN.fSpeed\"); numeric widget positions map via opcua.nodes_data. Machine config is part of the PROJECT and travels inside a .hmiproj bundle; conf.json holds deployment infra only.",
+  "nextId": 2,
+  "rows": [
+    {
+      "id": 1,
+      "name": "Machine 1",
+      "protocol": "opcua",
+      "scan_interval_ms": 500,
+      "is_active": true,
+      "opcua": {
+        "endpoint": "opc.tcp://192.168.1.10:4840",
+        "security_mode": "None",
+        "security_policy": "None",
+        "username": "",
+        "password": "",
+        "timeout_ms": 5000,
+        "namespace": 4,
+        "nodes_data": { "nodeid": "ns=4;s=GVL_PLC.PLC_MEM", "base": 0 },
+        "browse_root": "ObjectsFolder",
+        "browse_depth": 8,
+        "browse_max": 5000
+      },
+      "alarms": { "enabled": true, "opcua_nodeid": "ns=4;s=GVL_PLC.aAlarms", "base_code": 1, "bits_per_word": 32, "poll_interval_ms": 1000 }
+    }
+  ]
+}

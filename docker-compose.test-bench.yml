@@ -1,0 +1,26 @@
+# HMI Studio — test bench: the app wired to the bundled OPC UA test server.
+#
+#   docker compose -f docker-compose.test-bench.yml up --build
+#
+# Then open http://localhost:3100 (admin / admin123) and bind widgets to e.g.
+# "ns=1;s=MAIN.fSpeed" or a numeric position like "10". See test-bench/README.md.
+services:
+  opcua:
+    build:
+      context: ./test-bench
+    image: hmi-studio-opcua-testbench
+    expose:
+      - "4840"
+
+  hmi:
+    build: .
+    image: hmi-studio
+    ports:
+      - "3100:3100"
+    environment:
+      HMI_JWT_SECRET: "testbench-secret-not-for-production"
+    volumes:
+      # Point the single machine at the OPC UA test server (service name "opcua").
+      - ./test-bench/machines.docker.json:/app/data/machines.json:ro
+    depends_on:
+      - opcua

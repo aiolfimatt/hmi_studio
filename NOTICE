@@ -1,0 +1,19 @@
+HMI Studio
+Copyright 2026 HMI Studio contributors
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+This software bundles third-party open-source components, each under its own
+license (see each package's entry in the dependency tree / generated SBOM).
+Notable runtime dependencies include:
+
+  - Express, Socket.IO, compression, cors, multer   (MIT)
+  - jsonwebtoken, bcryptjs                           (MIT)
+  - node-opcua                                       (MIT)
+  - ads-client                                       (MIT)  [optional]
+  - React, React Router, Vite, Tailwind CSS         (MIT)
+  - Ant Design, @ant-design/icons                    (MIT)
+  - recharts, three, lucide-react, axios, @dnd-kit   (MIT)
+
+Generate a full, machine-readable bill of materials with the SBOM scripts
+documented in docs/SBOM.md.

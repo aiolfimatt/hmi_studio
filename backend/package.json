@@ -1,0 +1,30 @@
+{
+  "name": "hmi-studio-backend",
+  "version": "1.0.0",
+  "description": "HMI Studio backend",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js",
+    "bundle": "node build/bundle.js",
+    "sbom": "npx --yes @cyclonedx/cyclonedx-npm --omit dev --output-format JSON --output-file ../sbom-backend.json"
+  },
+  "dependencies": {
+    "ads-client": "^1.14.3",
+    "bcryptjs": "^2.4.3",
+    "compression": "^1.8.2",
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^2.2.0",
+    "node-opcua": "^2.187.16",
+    "socket.io": "^4.7.4"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0",
+    "nodemon": "^3.0.3"
+  },
+  "overrides": {
+    "minimatch": "^11.0.1"
+  }
+}
