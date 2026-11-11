@@ -1,0 +1,534 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta property="og:title" content="HMI Studio — open-source web HMI for industrial machines">
+<meta property="og:description" content="Design operator screens in the browser, bind them to Beckhoff ADS or OPC UA, and run a touch-ready panel from one Node process. Apache-2.0.">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232a343a'/%3E%3Ccircle cx='8' cy='8' r='4' fill='%230b8f57'/%3E%3C/svg%3E">
+<title>HMI Studio — open-source web HMI for industrial machines</title>
+<meta name="description" content="Design operator screens in the browser, bind them to Beckhoff ADS or OPC UA, and run a touch-ready panel from one Node process. Apache-2.0.">
+<style>
+  :root {
+    --enclosure: #e6e9eb;
+    --panel: #fbfcfc;
+    --ink: #20292e;
+    --steel: #647680;
+    --rule: #ccd4d8;
+    --run: #0b8f57;
+    --run-dim: #0a7347;
+    --alarm: #c92f21;
+    --hmi-blue: #1465c0;
+    --screen: #f3f6f9;
+    --bezel: #2a343a;
+    --sans: "Segoe UI Variable Display", "Segoe UI", Roboto, "Helvetica Neue", Arial, system-ui, sans-serif;
+    --mono: ui-monospace, "Cascadia Code", Consolas, "SF Mono", Menlo, monospace;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--enclosure);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 17px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
+
+  a { color: var(--hmi-blue); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  :focus-visible { outline: 3px solid var(--hmi-blue); outline-offset: 2px; border-radius: 2px; }
+
+  /* ── Top bar ─────────────────────────────────────────── */
+  .top {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 20px 0 18px; border-bottom: 1px solid var(--rule);
+  }
+  .mark { display: flex; align-items: center; gap: 10px; font-weight: 750; font-size: 1.12rem; color: var(--ink); letter-spacing: -0.01em; }
+  .mark .led { width: 10px; height: 10px; border-radius: 50%; background: var(--run); box-shadow: 0 0 0 3px rgba(11,143,87,.18); }
+  .top nav { display: flex; gap: 26px; font-size: .95rem; }
+  .top nav a { color: var(--steel); font-weight: 550; }
+  .top nav a:hover { color: var(--ink); text-decoration: none; }
+  .top nav .gh { color: var(--ink); font-weight: 650; }
+
+  /* ── Hero ───────────────────────────────────────────── */
+  .hero {
+    display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 460px);
+    gap: 56px; align-items: center; padding: 72px 0 84px;
+    border-bottom: 1px solid var(--rule);
+  }
+  h1 {
+    margin: 0 0 20px;
+    font-size: clamp(2.1rem, 4.6vw, 3.25rem);
+    line-height: 1.04; font-weight: 800; letter-spacing: -0.025em;
+    text-wrap: balance;
+  }
+  .lede { margin: 0 0 30px; max-width: 32em; color: #3c4a52; font-size: 1.08rem; }
+  .lede b { color: var(--ink); font-weight: 650; }
+  .cta-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 22px; }
+  .btn {
+    display: inline-block; padding: 12px 22px; border-radius: 4px;
+    font-weight: 650; font-size: 1rem; border: 1px solid transparent; cursor: pointer;
+  }
+  .btn-run { background: var(--run); color: #fff; }
+  .btn-run:hover { background: var(--run-dim); text-decoration: none; }
+  .btn-ghost { background: transparent; border-color: #9aa8af; color: var(--ink); }
+  .btn-ghost:hover { border-color: var(--ink); text-decoration: none; }
+  .hero-fine { font-size: .92rem; color: var(--steel); }
+  .hero-fine code { font-family: var(--mono); font-size: .88em; background: var(--panel); border: 1px solid var(--rule); padding: 2px 6px; border-radius: 3px; }
+
+  /* ── Simulated panel ────────────────────────────────── */
+  .bezel {
+    background: var(--bezel); border-radius: 12px; padding: 14px;
+    box-shadow: 0 18px 40px -18px rgba(32,41,46,.45);
+  }
+  .screen { background: var(--screen); border-radius: 6px; overflow: hidden; }
+  .screen-head {
+    display: flex; justify-content: space-between; align-items: center;
+    background: #fff; border-bottom: 1px solid #dfe6ea; padding: 10px 14px;
+  }
+  .mach { font-weight: 700; font-size: .92rem; letter-spacing: .06em; }
+  .leds { display: flex; gap: 14px; font-size: .72rem; font-weight: 700; letter-spacing: .08em; color: var(--steel); }
+  .leds i { font-style: normal; display: flex; align-items: center; gap: 5px; }
+  .leds i::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: #c3ccd1; }
+  .leds i.on-run::before { background: var(--run); box-shadow: 0 0 6px rgba(11,143,87,.7); }
+  .leds i.on-alm::before { background: var(--alarm); box-shadow: 0 0 6px rgba(201,47,33,.7); animation: blink 1s steps(2) infinite; }
+  @keyframes blink { 50% { opacity: .35; } }
+
+  .alarmbar {
+    display: flex; justify-content: space-between; align-items: center; gap: 10px;
+    background: var(--alarm); color: #fff; padding: 8px 14px; font-size: .88rem; font-weight: 600;
+  }
+  .alarmbar button {
+    background: #fff; color: var(--alarm); border: 0; border-radius: 3px;
+    font-weight: 750; font-size: .78rem; letter-spacing: .05em; padding: 4px 10px; cursor: pointer;
+  }
+  .alarmbar[hidden] { display: none; }
+
+  .readouts { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: #dfe6ea; }
+  .ro { background: var(--screen); padding: 14px 14px 12px; }
+  .ro.wide { grid-column: 1 / -1; background: #fff; }
+  .ro-name { font-size: .82rem; color: var(--steel); font-weight: 600; margin-bottom: 2px; }
+  .ro-val { font-size: 1.7rem; font-weight: 750; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; line-height: 1.15; }
+  .ro.wide .ro-val { font-size: 2.3rem; }
+  .ro-val small { font-size: .55em; font-weight: 600; color: var(--steel); margin-left: 5px; }
+  .ro code { display: block; margin-top: 6px; font-family: var(--mono); font-size: .68rem; color: #84949c; overflow-x: auto; white-space: nowrap; }
+  .ro canvas { display: block; width: 100%; height: 44px; margin-top: 6px; }
+  .bar { height: 7px; background: #e2e9ed; border-radius: 4px; margin-top: 10px; overflow: hidden; }
+  .bar span { display: block; height: 100%; width: 60%; background: var(--run); border-radius: 4px; transition: width .4s linear, background .4s; }
+
+  .panel-ctl {
+    display: flex; align-items: center; gap: 10px;
+    background: #fff; border-top: 1px solid #dfe6ea; padding: 12px 14px;
+  }
+  .pb {
+    border-radius: 4px; border: 1px solid transparent; cursor: pointer;
+    font-weight: 750; font-size: .85rem; letter-spacing: .07em; padding: 10px 20px;
+  }
+  .pb.start { background: var(--run); color: #fff; }
+  .pb.start[aria-pressed="true"] { background: var(--run-dim); }
+  .pb.stop { background: #fff; color: var(--alarm); border-color: var(--alarm); }
+  .pb.stop:hover { background: #fdf1f0; }
+  .pb.start:hover { background: var(--run-dim); }
+  .state { margin-left: auto; font-size: .8rem; font-weight: 750; letter-spacing: .08em; color: var(--run); }
+  .state.stopped { color: var(--steel); }
+  .panel-cap { margin: 14px 2px 0; font-size: .88rem; color: var(--steel); }
+
+  /* ── Sections ───────────────────────────────────────── */
+  section { padding: 76px 0; border-bottom: 1px solid var(--rule); }
+  h2 {
+    margin: 0 0 14px; font-size: clamp(1.5rem, 2.6vw, 2rem);
+    font-weight: 750; letter-spacing: -0.02em; text-wrap: balance;
+  }
+  .sec-lede { margin: 0 0 40px; max-width: 38em; color: #3c4a52; }
+
+  /* steps — a real sequence */
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 36px; }
+  .step { border-top: 3px solid var(--ink); padding-top: 16px; }
+  .step .n { font-weight: 800; font-size: 1rem; }
+  .step h3 { margin: 2px 0 8px; font-size: 1.18rem; font-weight: 700; letter-spacing: -0.01em; }
+  .step p { margin: 0; font-size: .97rem; color: #3c4a52; }
+  .step code { font-family: var(--mono); font-size: .85em; background: var(--panel); border: 1px solid var(--rule); padding: 1px 5px; border-radius: 3px; }
+
+  /* datasheet */
+  .sheet { border-top: 1px solid var(--rule); }
+  .row {
+    display: grid; grid-template-columns: 220px 1fr; gap: 24px;
+    padding: 14px 0; border-bottom: 1px solid var(--rule);
+  }
+  .row dt { font-weight: 700; font-size: .97rem; }
+  .row dd { margin: 0; color: #3c4a52; font-size: .97rem; }
+  .row dd code { font-family: var(--mono); font-size: .85em; background: var(--panel); border: 1px solid var(--rule); padding: 1px 5px; border-radius: 3px; }
+
+  /* security */
+  .sec-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 28px 48px; }
+  .fact { border-left: 3px solid var(--run); padding-left: 16px; }
+  .fact h3 { margin: 0 0 6px; font-size: 1.05rem; font-weight: 700; }
+  .fact p { margin: 0; font-size: .95rem; color: #3c4a52; }
+
+  /* quickstart */
+  .qs { display: grid; grid-template-columns: 1fr 1fr; gap: 36px; }
+  .qs h3 { margin: 0 0 10px; font-size: 1.1rem; font-weight: 700; }
+  .cmd {
+    position: relative; background: var(--bezel); color: #d8e2e8;
+    border-radius: 6px; padding: 16px 52px 16px 16px;
+    font-family: var(--mono); font-size: .84rem; line-height: 1.6;
+    overflow-x: auto; white-space: pre;
+  }
+  .cmd .c { color: #7e939e; }
+  .copy {
+    position: absolute; top: 8px; right: 8px;
+    background: #3b4852; color: #d8e2e8; border: 0; border-radius: 4px;
+    font-size: .72rem; font-weight: 650; padding: 5px 9px; cursor: pointer;
+  }
+  .copy:hover { background: #4a5a66; }
+  .qs p { font-size: .92rem; color: var(--steel); margin: 10px 0 0; }
+  .qs p code { font-family: var(--mono); font-size: .88em; }
+
+  /* footer */
+  footer { padding: 44px 0 64px; }
+  .foot { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 18px; font-size: .92rem; color: var(--steel); }
+  .foot nav { display: flex; flex-wrap: wrap; gap: 20px; }
+
+  @media (max-width: 920px) {
+    .hero { grid-template-columns: 1fr; gap: 44px; padding: 52px 0 60px; }
+    .bezel { max-width: 520px; }
+    .steps, .sec-grid, .qs { grid-template-columns: 1fr; }
+    .row { grid-template-columns: 1fr; gap: 4px; }
+    .top nav { gap: 16px; }
+    .top nav a:not(.gh) { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    .leds i.on-alm::before { animation: none; }
+    .bar span { transition: none; }
+  }
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="mark"><span class="led" aria-hidden="true"></span>HMI Studio</div>
+    <nav>
+      <a href="#flow">How it works</a>
+      <a href="#specs">Specifications</a>
+      <a href="#security">Security</a>
+      <a href="#quickstart">Quickstart</a>
+      <a class="gh" href="https://github.com/aiolfimatt/hmi_studio">GitHub</a>
+    </nav>
+  </header>
+
+  <section class="hero" style="border-bottom:1px solid var(--rule)">
+    <div>
+      <h1>Design the operator panel in a browser. Run it on the machine.</h1>
+      <p class="lede">HMI Studio is an <b>open-source, web-based HMI</b> for industrial
+        machines: a drag-and-drop screen editor, <b>Beckhoff ADS</b> and
+        <b>OPC UA</b> drivers, alarms, recipes and operator access control —
+        served as a touch-ready panel by a single Node process.</p>
+      <div class="cta-row">
+        <a class="btn btn-run" href="https://github.com/aiolfimatt/hmi_studio">Get it on GitHub</a>
+        <a class="btn btn-ghost" href="#quickstart">Run it in two minutes</a>
+      </div>
+      <p class="hero-fine">Apache-2.0 licensed. No account, no telemetry, no external database —
+        one process, your network.</p>
+    </div>
+
+    <div>
+      <div class="bezel">
+        <div class="screen" role="group" aria-label="Simulated operator panel">
+          <div class="screen-head">
+            <span class="mach">CAPPER-L2</span>
+            <span class="leds"><i id="ledRun" class="on-run">RUN</i><i id="ledAlm">ALM</i></span>
+          </div>
+          <div class="alarmbar" id="alarmbar" hidden>
+            <span>A07 — Guard circuit open</span>
+            <button id="ackBtn" type="button">ACK</button>
+          </div>
+          <div class="readouts">
+            <div class="ro wide">
+              <div class="ro-name">Spindle speed</div>
+              <div class="ro-val"><span id="vSpeed">0</span><small>rpm</small></div>
+              <canvas id="spark" width="440" height="44" aria-hidden="true"></canvas>
+              <code>ns=4;s=GVL_PLC.PLC_MEM[3]</code>
+            </div>
+            <div class="ro">
+              <div class="ro-name">Head temperature</div>
+              <div class="ro-val"><span id="vTemp">0.0</span><small>&deg;C</small></div>
+              <div class="bar"><span id="tempBar"></span></div>
+              <code>ns=4;s=GVL_PLC.PLC_MEM[7]</code>
+            </div>
+            <div class="ro">
+              <div class="ro-name">Good parts</div>
+              <div class="ro-val"><span id="vParts">0</span></div>
+              <code>ns=4;s=GVL_PLC.PLC_MEM[12]</code>
+            </div>
+          </div>
+          <div class="panel-ctl">
+            <button class="pb start" id="btnStart" type="button" aria-pressed="true">START</button>
+            <button class="pb stop" id="btnStop" type="button" aria-pressed="false">STOP</button>
+            <span class="state" id="stateTxt">RUNNING</span>
+          </div>
+        </div>
+      </div>
+      <p class="panel-cap">A simulated machine, live on this page — the same mock driver
+        ships with HMI Studio, so screens work before a PLC exists. Try STOP.</p>
+    </div>
+  </section>
+
+  <section id="flow">
+    <h2>From empty page to operator panel</h2>
+    <p class="sec-lede">Three steps, all in the browser. No runtime generator,
+      no per-machine native app, nothing to install on the panel PC except a browser.</p>
+    <div class="steps">
+      <div class="step">
+        <span class="n">1</span>
+        <h3>Draw</h3>
+        <p>Open <code>/edit</code> and drag widgets onto pages: labels, buttons,
+          toggles, gauges, grids, images, 3D STL models, charts. Save configured
+          widgets to a library and reuse them across pages.</p>
+      </div>
+      <div class="step">
+        <span class="n">2</span>
+        <h3>Bind</h3>
+        <p>Point each widget at a PLC variable — browse live TwinCAT symbols over
+          ADS, or address OPC UA NodeIds directly. No PLC yet? The built-in
+          simulator feeds every screen with moving data.</p>
+      </div>
+      <div class="step">
+        <span class="n">3</span>
+        <h3>Hand over</h3>
+        <p>Operators open <code>/monitor</code>: touch-ready, multi-language, and
+          gated by access groups — down to a single button. Export the whole
+          project as one <code>.hmiproj</code> file and load it on the next machine.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="specs">
+    <h2>Specifications</h2>
+    <dl class="sheet" style="margin:36px 0 0">
+      <div class="row"><dt>PLC protocols</dt><dd>Beckhoff TwinCAT ADS, OPC UA, built-in mock/simulator for PLC-free development</dd></div>
+      <div class="row"><dt>Screen editor</dt><dd>Drag-and-drop pages; labels, buttons, toggles, gauges, grids, images, 3D STL, charts; reusable widget library; live PLC symbol browser</dd></div>
+      <div class="row"><dt>Alarms</dt><dd>Edge-detected polling on ADS and OPC UA, composite alarm text, active-alarm view with acknowledge</dd></div>
+      <div class="row"><dt>Access control</dt><dd>Named groups with capability inheritance; per-page and per-widget gating; optional LDAP gateway</dd></div>
+      <div class="row"><dt>Operator runtime</dt><dd>Touch-friendly, multi-language (operator UI localizable; designer UI in English)</dd></div>
+      <div class="row"><dt>Projects</dt><dd>Export/import the full configuration — pages, alarms, recipes, groups, machine config — as a single <code>.hmiproj</code> file</dd></div>
+      <div class="row"><dt>Deployment</dt><dd>One Node process serves UI and API; Docker image and Compose files; Windows portable package (no Node install on the target PC)</dd></div>
+      <div class="row"><dt>Audit</dt><dd>Local append-only log of logins, lockouts, and operator value writes</dd></div>
+      <div class="row"><dt>Requirements</dt><dd>Node.js 20+, or just Docker; any modern browser on the panel side</dd></div>
+      <div class="row"><dt>License</dt><dd>Apache-2.0 — free for commercial use, modification, and redistribution</dd></div>
+    </dl>
+  </section>
+
+  <section id="security">
+    <h2>Secure by default</h2>
+    <p class="sec-lede">HMI Studio is built for machines that will outlive several IT
+      policies, and documents its posture against the EU Cyber Resilience Act so you
+      can fold it into your own product's conformity work.</p>
+    <div class="sec-grid">
+      <div class="fact">
+        <h3>No known-key tokens, ever</h3>
+        <p>If the JWT secret is missing or still the shipped placeholder, the backend
+          signs with a random ephemeral secret and warns at startup — it never uses a
+          key an attacker could look up.</p>
+      </div>
+      <div class="fact">
+        <h3>Hardened login</h3>
+        <p>bcrypt password hashes, account lockout after repeated failures, per-IP
+          rate limiting on the authentication endpoints, and a warning while the
+          default admin password is unchanged.</p>
+      </div>
+      <div class="fact">
+        <h3>A paper trail</h3>
+        <p>Every login, lockout, and operator value write lands in a local
+          append-only audit log. No telemetry leaves the machine.</p>
+      </div>
+      <div class="fact">
+        <h3>CRA-ready paperwork</h3>
+        <p>CycloneDX SBOM generation, a coordinated-disclosure policy, and a
+          maintained readiness matrix against CRA Annex I — see
+          <a href="https://github.com/aiolfimatt/hmi_studio/blob/main/docs/CRA-READINESS.md">docs/CRA-READINESS.md</a>.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="quickstart">
+    <h2>Run it in two minutes</h2>
+    <p class="sec-lede">The test bench starts HMI Studio together with a real OPC UA
+      server, so you can exercise reads, writes, and alarms with no PLC and no hardware.</p>
+    <div class="qs">
+      <div>
+        <h3>With Docker</h3>
+        <div class="cmd"><button class="copy" type="button" data-copy="git clone https://github.com/aiolfimatt/hmi_studio.git&#10;cd hmi_studio&#10;docker compose -f docker-compose.test-bench.yml up --build">Copy</button><span class="c"># full stack + OPC UA test server</span>
+git clone https://github.com/aiolfimatt/hmi_studio.git
+cd hmi_studio
+docker compose -f docker-compose.test-bench.yml up --build</div>
+        <p>Open <code>http://localhost:3100</code> and log in with
+          <code>admin / admin123</code> — then change it.</p>
+      </div>
+      <div>
+        <h3>From source</h3>
+        <div class="cmd"><button class="copy" type="button" data-copy="cd backend && npm install && node index.js&#10;# second terminal:&#10;cd frontend && npm install && npm run dev">Copy</button><span class="c"># Node.js 20+</span>
+cd backend
+npm install
+node index.js
+<span class="c"># second terminal:</span>
+cd frontend
+npm install
+npm run dev</div>
+        <p>Open <code>http://localhost:3101</code>. First run seeds an admin user,
+          default groups, and a mock machine — every widget shows moving data
+          immediately.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="foot">
+      <span>HMI Studio — Apache-2.0. Built for machine builders.</span>
+      <nav>
+        <a href="https://github.com/aiolfimatt/hmi_studio">GitHub</a>
+        <a href="https://github.com/aiolfimatt/hmi_studio/blob/main/docs/ARCHITECTURE.md">Architecture</a>
+        <a href="https://github.com/aiolfimatt/hmi_studio/blob/main/docs/DEPLOYMENT.md">Deployment</a>
+        <a href="https://github.com/aiolfimatt/hmi_studio/blob/main/config/README.md">Configuration</a>
+        <a href="https://github.com/aiolfimatt/hmi_studio/blob/main/SECURITY.md">Security policy</a>
+      </nav>
+    </div>
+  </footer>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  // ── Simulated machine ─────────────────────────────────
+  var running = true;
+  var speed = 0, temp = 24, parts = 0, partAcc = 0;
+  var history = [];
+  var alarmed = false, nextAlarmIn = rand(16, 26), alarmLeft = 0;
+
+  var vSpeed = document.getElementById("vSpeed");
+  var vTemp = document.getElementById("vTemp");
+  var vParts = document.getElementById("vParts");
+  var tempBar = document.getElementById("tempBar");
+  var ledRun = document.getElementById("ledRun");
+  var ledAlm = document.getElementById("ledAlm");
+  var alarmbar = document.getElementById("alarmbar");
+  var stateTxt = document.getElementById("stateTxt");
+  var btnStart = document.getElementById("btnStart");
+  var btnStop = document.getElementById("btnStop");
+  var spark = document.getElementById("spark");
+  var ctx = spark.getContext("2d");
+
+  function rand(a, b) { return a + Math.random() * (b - a); }
+
+  function setRunning(on) {
+    running = on;
+    btnStart.setAttribute("aria-pressed", String(on));
+    btnStop.setAttribute("aria-pressed", String(!on));
+    stateTxt.textContent = on ? "RUNNING" : "STOPPED";
+    stateTxt.classList.toggle("stopped", !on);
+    ledRun.classList.toggle("on-run", on);
+    if (!on) clearAlarm();
+  }
+
+  function tripAlarm() {
+    alarmed = true; alarmLeft = 6;
+    alarmbar.hidden = false;
+    ledAlm.classList.add("on-alm");
+  }
+  function clearAlarm() {
+    alarmed = false;
+    alarmbar.hidden = true;
+    ledAlm.classList.remove("on-alm");
+    nextAlarmIn = rand(16, 26);
+  }
+
+  btnStart.addEventListener("click", function () { setRunning(true); });
+  btnStop.addEventListener("click", function () { setRunning(false); });
+  document.getElementById("ackBtn").addEventListener("click", clearAlarm);
+
+  var SCAN = 400; // ms — one "scan"
+  setInterval(function () {
+    var dt = SCAN / 1000;
+
+    // first-order approach to target, plus noise while running
+    var targetSpeed = running && !alarmed ? 1480 : 0;
+    speed += (targetSpeed - speed) * 0.12;
+    if (running && !alarmed) speed += rand(-14, 14);
+    if (speed < 1) speed = 0;
+
+    var targetTemp = running ? 63 : 24;
+    temp += (targetTemp - temp) * 0.02 + (running ? rand(-0.25, 0.25) : 0);
+
+    if (running && !alarmed && speed > 1200) {
+      partAcc += dt / 0.9;              // ~one part / 0.9 s at speed
+      while (partAcc >= 1) { parts++; partAcc--; }
+    }
+
+    // alarm scheduler (only while running)
+    if (running) {
+      if (alarmed) {
+        alarmLeft -= dt;
+        if (alarmLeft <= 0) clearAlarm();
+      } else {
+        nextAlarmIn -= dt;
+        if (nextAlarmIn <= 0) tripAlarm();
+      }
+    }
+
+    vSpeed.textContent = String(Math.round(speed));
+    vTemp.textContent = temp.toFixed(1);
+    vParts.textContent = parts.toLocaleString();
+    var pct = Math.max(2, Math.min(100, ((temp - 20) / 60) * 100));
+    tempBar.style.width = pct + "%";
+    tempBar.style.background = temp > 70 ? "#c92f21" : "#0b8f57";
+
+    history.push(speed);
+    if (history.length > 90) history.shift();
+    drawSpark();
+  }, SCAN);
+
+  function drawSpark() {
+    var w = spark.width, h = spark.height, max = 1700;
+    ctx.clearRect(0, 0, w, h);
+    // faint grid
+    ctx.strokeStyle = "#e2e9ed"; ctx.lineWidth = 1;
+    [0.25, 0.5, 0.75].forEach(function (g) {
+      ctx.beginPath(); ctx.moveTo(0, h * g); ctx.lineTo(w, h * g); ctx.stroke();
+    });
+    if (history.length < 2) return;
+    var step = w / 89;
+    ctx.beginPath();
+    history.forEach(function (v, i) {
+      var x = i * step, y = h - (v / max) * (h - 4) - 2;
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    });
+    ctx.strokeStyle = "#0b8f57"; ctx.lineWidth = 1.8; ctx.stroke();
+    // area fill
+    var lx = (history.length - 1) * step;
+    ctx.lineTo(lx, h); ctx.lineTo(0, h); ctx.closePath();
+    ctx.fillStyle = "rgba(11,143,87,.09)"; ctx.fill();
+    // emphasized endpoint
+    var ly = h - (history[history.length - 1] / max) * (h - 4) - 2;
+    ctx.beginPath(); ctx.arc(lx, ly, 2.6, 0, Math.PI * 2);
+    ctx.fillStyle = "#0b8f57"; ctx.fill();
+  }
+
+  // ── Copy buttons ──────────────────────────────────────
+  document.querySelectorAll(".copy").forEach(function (b) {
+    b.addEventListener("click", function () {
+      navigator.clipboard.writeText(b.getAttribute("data-copy").replace(/&#10;/g, "\n")).then(function () {
+        b.textContent = "Copied";
+        setTimeout(function () { b.textContent = "Copy"; }, 1600);
+      });
+    });
+  });
+})();
+</script>
+</body>
+</html>
