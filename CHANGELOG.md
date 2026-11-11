@@ -13,6 +13,10 @@ All notable changes to this project are documented here. The format is based on
   wiring to run the full stack without a PLC.
 - Docker image and Compose files (standalone + test bench).
 - OPC UA **alarm polling** (`alarms.opcua_nodeid`), matching the existing ADS path.
+- OPC UA **tag browser** in the widget editor: the browse button next to PLC-address
+  fields now works for OPC UA machines too (picks a NodeId from the server's address
+  space). Namespace-0 `Server.*` internals are hidden from the list by default
+  (`opcua.browse_ns0` to include them).
 - Secure-by-default hardening: `HMI_JWT_SECRET` env override with a random ephemeral
   fallback when the shipped placeholder is detected; startup warning when the default
   admin password is unchanged; `conf.cors_origin` knob.

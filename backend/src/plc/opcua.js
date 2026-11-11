@@ -18,7 +18,8 @@
  *     "counters_nodeid": "ns=4;s=Counters",  // array node for batch counter block
  *     "nodes_data": { "nodeid": "ns=4;s=DataArray", "base": 0 }, // legacy numeric pos
  *     "browse_root": "ObjectsFolder", // variable-browser start node
- *     "browse_depth": 8, "browse_max": 5000
+ *     "browse_depth": 8, "browse_max": 5000,
+ *     "browse_ns0": false             // include namespace-0 (server-internal) nodes
  *   }
  *
  * Mirrors plc/ads.js so the scanner can dispatch to either by `protocol`. Failures
@@ -202,6 +203,10 @@ async function listSymbols(machine) {
   const root = OPC.resolveNodeId(o.browse_root || 'ObjectsFolder');
   const maxNodes = Number(o.browse_max || 5000);
   const maxDepth = Number(o.browse_depth || 8);
+  // Namespace 0 is the OPC UA standard information model (Server diagnostics,
+  // aggregate configs, …) — never machine data. Hide it from the tag picker
+  // unless explicitly asked for, so real tags aren't buried under Server.*.
+  const includeNs0 = !!o.browse_ns0;
   const out = [];
   const seen = new Set();
 
@@ -211,6 +216,7 @@ async function listSymbols(machine) {
     try { result = await session.browse(nodeId); } catch { return; }
     for (const ref of result.references || []) {
       if (out.length >= maxNodes) return;
+      if (!includeNs0 && ref.nodeId.namespace === 0) continue;
       const id = ref.nodeId.toString();
       if (seen.has(id)) continue;
       seen.add(id);

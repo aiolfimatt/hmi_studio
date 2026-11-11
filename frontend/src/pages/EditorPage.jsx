@@ -561,8 +561,10 @@ function adsTypeToDataType(t) {
   return null
 }
 
-// Modal that lists an ADS machine's PLC symbols with live filtering. Picking a
-// symbol returns { name, type } so the caller can fill plcAddress (and dataType).
+// Modal that lists a machine's PLC variables with live filtering — the ADS
+// symbol table, or the browsed OPC UA address space (name = NodeId, comment =
+// browse path). Picking one returns { name, type } so the caller can fill
+// plcAddress (and dataType, when the protocol provides a type).
 function SymbolPicker({ machineId, onPick, onClose }) {
   const [state, setState] = useState({ loading: true, error: null, symbols: [] })
   const [q, setQ] = useState('')
@@ -625,24 +627,28 @@ function SymbolPicker({ machineId, onPick, onClose }) {
   )
 }
 
-// PLC-address field. For ADS (Beckhoff) machines it adds a "browse symbols"
-// button that opens the SymbolPicker; for offset-based protocols it is a plain
-// text input (unchanged behaviour). `onPickType`, when given, receives the
-// mapped widget dataType so selecting a symbol also sets the data type.
+// PLC-address field. For ADS (Beckhoff) and OPC UA machines it adds a "browse
+// symbols" button that opens the SymbolPicker (ADS symbol table / OPC UA address
+// space); for offset-based protocols it is a plain text input (unchanged
+// behaviour). `onPickType`, when given, receives the mapped widget dataType so
+// selecting a symbol also sets the data type (ADS only — OPC UA browse carries
+// no type info).
 function PlcAddressInput({ value, onChange, onPickType, placeholder, small = false }) {
-  // Single-machine deployment: the one configured machine drives ADS detection
-  // and the symbol browser (no per-widget machine selection any more).
+  // Single-machine deployment: the one configured machine drives protocol
+  // detection and the symbol browser (no per-widget machine selection any more).
   const machines = useMachines()
   const machine = machines[0]
-  const isAds = String(machine?.protocol || '').toLowerCase() === 'ads'
+  const proto = String(machine?.protocol || '').toLowerCase()
+  const canBrowse = proto === 'ads' || proto === 'opcua'
+  const ph = proto === 'ads' ? 'MAIN.fSpeed' : proto === 'opcua' ? 'ns=4;s=MAIN.fSpeed' : placeholder
   const [open, setOpen] = useState(false)
 
   const field = small
     ? <input type="text" className="input-field text-[10px] py-0.5 w-full"
-        value={value ?? ''} onChange={e => onChange(e.target.value)} placeholder={isAds ? 'MAIN.fSpeed' : placeholder} />
-    : <SI value={value} onChange={onChange} placeholder={isAds ? 'MAIN.fSpeed' : placeholder} />
+        value={value ?? ''} onChange={e => onChange(e.target.value)} placeholder={ph} />
+    : <SI value={value} onChange={onChange} placeholder={ph} />
 
-  if (!isAds) return field
+  if (!canBrowse) return field
   return (
     <>
       <div className="flex items-center gap-1">

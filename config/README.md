@@ -248,6 +248,7 @@ For `protocol:"opcua"`, add an `opcua` sub-object to the machine (see the ready-
 | `namespace` | — | Default namespace index for bare symbol addresses. |
 | `nodes_data` | — | `{ nodeid, base }` — numeric-position → NodeId array mapping (OPC UA equivalent of `ads_data`). |
 | `browse_root` / `browse_depth` / `browse_max` | `ObjectsFolder` / `8` / `5000` | Address-space browsing limits for the editor's variable picker. |
+| `browse_ns0` | `false` | Include namespace-0 (OPC UA standard `Server.*`) nodes in the variable picker. Off by default — ns=0 is server internals, not machine data. |
 
 ### `ads_data` block (numeric addresses → ADS array)
 
