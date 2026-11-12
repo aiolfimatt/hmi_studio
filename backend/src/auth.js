@@ -28,6 +28,13 @@ function optionalAuth(req, res, next) {
   next();
 }
 
+// Decode a raw token (no "Bearer " prefix) outside Express, e.g. on a socket
+// event. Invalid/missing → null (anonymous).
+function userFromToken(token) {
+  if (!token || typeof token !== 'string') return null;
+  try { return jwt.verify(token.replace(/^Bearer /, ''), jwtSecret()); } catch { return null; }
+}
+
 // ── Capability gating ─────────────────────────────────────────────────────────
 // Access control is now driven by the caller's GROUP capabilities, snapshotted
 // into the JWT at login (`req.user.capabilities`). We additionally RE-RESOLVE the
@@ -89,4 +96,4 @@ function requireLevel(minLevel) {
   };
 }
 
-module.exports = { authMiddleware, optionalAuth, requireLevel, requireAdmin, requireCapability, requireAnyCapability };
+module.exports = { authMiddleware, optionalAuth, userFromToken,requireLevel, requireAdmin, requireCapability, requireAnyCapability };

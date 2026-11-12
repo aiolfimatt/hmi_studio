@@ -7,7 +7,7 @@ import { Modal, Form, Input, Button, Alert, message } from 'antd'
 import { UserOutlined, LockOutlined } from '@ant-design/icons'
 import { Layers, WifiOff, AlertTriangle, Lock } from 'lucide-react'
 
-import { pages as pagesApi, alarms as alarmsApi, groups as groupsApi } from '../api/client'
+import { alarms as alarmsApi, groups as groupsApi } from '../api/client'
 import WidgetRenderer from '../components/widgets/WidgetRenderer'
 import AlarmPopup from '../components/widgets/AlarmPopup'
 import ScriptRunPopup from '../components/widgets/ScriptRunPopup'
@@ -172,6 +172,7 @@ function MonitorCanvas({ pageName, cred, setCred, plcValues, socketState, active
   const [pageData,    setPageData]    = useState(null)
   const [loading,     setLoading]     = useState(true)
   const [pageError,   setPageError]   = useState(null)
+  const [restricted,  setRestricted]  = useState(null) // { title, viewGroups, loggedIn } when this operator may not view the page
   const [writeStatus, setWriteStatus] = useState(null) // { ok: bool, msg: string }
   const [scale,       setScale]       = useState(1)     // form fit-to-viewport scale
 
@@ -195,15 +196,30 @@ function MonitorCanvas({ pageName, cred, setCred, plcValues, socketState, active
   const wrapRef       = useRef(null)
   const authResolverRef = useRef(null)  // resolves the pending requestAccess() gate
 
-  // Load page definition (public endpoint — no auth needed at runtime)
+  // Load the page definition as the RUNTIME operator (raw axios with the held
+  // credential, never the /edit session token the shared client would attach).
+  // Public pages need no credential; a page restricted to some groups answers 403
+  // until an operator whose group may view it logs in, so this re-runs whenever
+  // the held credential changes (login / logout / auto-logout).
   useEffect(() => {
-    setLoading(true)
+    let cancelled = false
     setPageError(null)
-    pagesApi.get(pageName)
-      .then(data => setPageData(data))
-      .catch(e  => setPageError(e.response?.data?.error ?? e.message ?? tt('loadError')))
-      .finally(() => setLoading(false))
-  }, [pageName])
+    axios.get(`/api/pages/${encodeURIComponent(pageName)}`,
+      cred.token ? { headers: { Authorization: `Bearer ${cred.token}` } } : undefined)
+      .then(({ data }) => { if (!cancelled) { setRestricted(null); setPageData(data) } })
+      .catch(e => {
+        if (cancelled) return
+        const d = e.response?.data
+        if (e.response?.status === 403 && d?.restricted) {
+          setPageData(null)
+          setRestricted({ title: d.title || pageName, viewGroups: d.viewGroups || [], loggedIn: !!cred.token })
+        } else {
+          setPageError(d?.error ?? e.message ?? tt('loadError'))
+        }
+      })
+      .finally(() => { if (!cancelled) setLoading(false) })
+    return () => { cancelled = true }
+  }, [pageName, cred.token])
 
   // Group id→name (public) so a protected-write prompt can name the required group.
   useEffect(() => {
@@ -414,13 +430,14 @@ function MonitorCanvas({ pageName, cred, setCred, plcValues, socketState, active
     [cred.username, cred.group, groupNames]
   )
 
-  // Runtime credential handed to the users_panel widget so in-HMI user admin
-  // runs as the RUNTIME operator (not a stale /edit session) and is gated on
-  // their manageUsers capability.
+  // Runtime credential handed to the users_panel / audit_trail widgets so they
+  // run as the RUNTIME operator (not a stale /edit session) and are gated on
+  // their manageUsers / viewAudit capability.
   const userAdmin = useMemo(
     () => ({
       token: cred.token,
       canManageUsers: !!cred.capabilities?.manageUsers,
+      canViewAudit: !!(cred.capabilities?.viewAudit || cred.capabilities?.editMode),
       isAdmin: !!cred.capabilities?.editMode, // full admin may touch admin accounts
       user: { username: cred.username, group: cred.group },
     }),
@@ -522,8 +539,32 @@ function MonitorCanvas({ pageName, cred, setCred, plcValues, socketState, active
         </div>
       )}
 
+      {/* ---- Restricted page: only some groups may view it ---- */}
+      {restricted && (
+        <div className="absolute inset-0 z-10 flex items-center justify-center p-6">
+          <div className="max-w-sm rounded-lg border border-gray-200 bg-white p-8 text-center shadow-sm">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-gray-100">
+              <Lock size={22} className="text-gray-500" />
+            </div>
+            <h2 className="mb-2 text-base font-semibold text-gray-800">{restricted.title}</h2>
+            <p className="mb-1 text-sm text-gray-500">
+              {tt(restricted.loggedIn ? 'pageRestrictedDenied' : 'pageRestrictedLogin')}
+            </p>
+            {restricted.viewGroups.length > 0 && (
+              <p className="mb-5 text-xs text-gray-400">{tt('pageRestrictedGroups', { groups: nameGroups(restricted.viewGroups) })}</p>
+            )}
+            <div className="flex justify-center gap-2">
+              <button onClick={() => navigate('/')} className="btn-secondary text-sm">{tt('home')}</button>
+              <button onClick={() => handleSession('login')} className="btn-primary text-sm">
+                {tt(restricted.loggedIn ? 'switchOperator' : 'login')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ---- The form ---- */}
-      <div
+      {!restricted && <div
         className="relative bg-white border border-gray-200 shadow-2xl shrink-0"
         style={{
           width          : canvasWidth,
@@ -547,7 +588,7 @@ function MonitorCanvas({ pageName, cred, setCred, plcValues, socketState, active
           {widgets.length === 0 && (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 pointer-events-none">
               <Layers size={32} className="text-gray-300" />
-              <p className="text-xs text-gray-400 font-mono">Nessun widget configurato</p>
+              <p className="text-xs text-gray-400 font-mono">{tt('noWidgets')}</p>
             </div>
           )}
 
@@ -575,7 +616,7 @@ function MonitorCanvas({ pageName, cred, setCred, plcValues, socketState, active
               />
             ))
           }
-        </div>
+        </div>}
 
       {/* Credential prompt — protected writes (entry/toggle/button) and the
           user-admin surface. The entry comment, captured in the widget popup,
@@ -710,14 +751,16 @@ export default function MonitorPage() {
   // (Re)subscribe to the active page whenever it changes or the socket (re)connects.
   // On a page change the cleanup unsubscribes the previous page and the values are
   // cleared, so the previous page's cells don't linger until the new snapshot lands;
-  // the backend emits a fresh full snapshot on subscribe.
+  // the backend emits a fresh full snapshot on subscribe. The operator token rides
+  // along so a page restricted to some groups only streams its values to a screen
+  // allowed to view it; a login/logout re-subscribes with the new credential.
   useEffect(() => { setPlcValues({}) }, [pageName])
   useEffect(() => {
     const socket = socketRef.current
     if (!socket || socketState !== 'online' || !pageName) return
-    socket.emit('subscribe_page', pageName)
+    socket.emit('subscribe_page', pageName, { token: cred.token || null })
     return () => { socket.emit('unsubscribe_page', pageName) }
-  }, [pageName, socketState])
+  }, [pageName, socketState, cred.token])
 
   // ---------------------------------------------------------------------------
   // Inactivity auto-logout — RUNTIME operator credential only.

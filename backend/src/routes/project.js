@@ -75,7 +75,8 @@ function exportPage(r) {
   return {
     name: r.name, title: r.title, page_type: r.page_type,
     definition: parseDef(r.definition), nav_order: r.nav_order,
-    required_level: r.required_level, editGroup: r.editGroup ?? null, is_home: r.is_home,
+    required_level: r.required_level, editGroup: r.editGroup ?? null,
+    viewGroups: Array.isArray(r.viewGroups) ? r.viewGroups : [], is_home: r.is_home,
   };
 }
 // Asset MANIFEST — names only. The bytes stay in data/assets/ (source of truth)
@@ -173,7 +174,8 @@ function applyBundle(bundle, userId) {
       name: p.name, title: p.title || p.name,
       page_type: p.page_type || 'standard', definition: p.definition || { widgets: [] },
       nav_order: p.nav_order || 0,
-      required_level: p.required_level || 0, editGroup: p.editGroup ?? null, is_home: p.is_home ? 1 : 0,
+      required_level: p.required_level || 0, editGroup: p.editGroup ?? null,
+      viewGroups: Array.isArray(p.viewGroups) ? p.viewGroups.map(Number) : [], is_home: p.is_home ? 1 : 0,
       created_by: userId, created_at: store.now(), updated_at: store.now(),
     }));
   store.pages.replaceAll(pageRows);

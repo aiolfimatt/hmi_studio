@@ -38,6 +38,7 @@ export const TRANSLATABLE_PROPS = {
   // are resolved inside ToggleMultiWidget, which the array-unaware resolver skips.
   toggle_multi:  ['label'],
   event_box:     ['label'],
+  audit_trail:   ['title'],
 }
 
 // Return a shallow copy of `wp` with this widget type's translatable props

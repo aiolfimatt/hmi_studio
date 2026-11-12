@@ -26,7 +26,7 @@ function mergeGroups(bundleGroups, result) {
     const existing = localByName.get(sg.name);
     if (existing) { idMap.set(Number(sg.id), Number(existing.id)); continue; }
     const row = store.groups.insert({
-      name: sg.name, includes: [], manageUsers: !!sg.manageUsers, editMode: !!sg.editMode, builtin: false,
+      name: sg.name, includes: [], manageUsers: !!sg.manageUsers, editMode: !!sg.editMode, viewAudit: !!sg.viewAudit, builtin: false,
     });
     idMap.set(Number(sg.id), Number(row.id));
     created.push({ src: sg, localId: row.id });
@@ -63,7 +63,11 @@ function normalizeImportedPage(p, idMap) {
   let editGroup = p.editGroup ?? null;
   if (idMap) editGroup = mapId(editGroup);
   else if (editGroup == null && (Number(p.required_level) || 0) > 0) editGroup = L[Number(p.required_level)] || 3;
-  return { definition: { ...def, widgets }, editGroup };
+  // Page visibility groups: remap through the merged group ids. A legacy (v1)
+  // bundle predates the setting → public.
+  const viewGroups = (idMap && Array.isArray(p.viewGroups))
+    ? p.viewGroups.map(mapId).filter((g) => g != null) : [];
+  return { definition: { ...def, widgets }, editGroup, viewGroups };
 }
 
 // Pull every /api/assets/file/<name> reference out of a page definition so we
@@ -102,7 +106,8 @@ router.post('/export', requireAdmin, async (req, res) => {
       return {
         name: r.name, title: r.title, page_type: r.page_type,
         definition: parseDef(r.definition), nav_order: r.nav_order,
-        required_level: r.required_level, editGroup: r.editGroup ?? null, is_home: r.is_home,
+        required_level: r.required_level, editGroup: r.editGroup ?? null,
+        viewGroups: Array.isArray(r.viewGroups) ? r.viewGroups : [], is_home: r.is_home,
       };
     });
 
@@ -164,7 +169,7 @@ router.post('/import', requireAdmin, async (req, res) => {
     // 2) pages (upsert by name), with group tags resolved to local ids
     for (const p of (bundle.pages || [])) {
       if (!p.name) { result.warnings.push('Skipped page with no name'); continue; }
-      const { definition, editGroup } = normalizeImportedPage(p, idMap);
+      const { definition, editGroup, viewGroups } = normalizeImportedPage(p, idMap);
       const existing = store.pages.find((x) => x.name === p.name);
       if (existing) {
         if (!overwritePages) { result.pagesSkipped++; result.warnings.push(`Page '${p.name}' already exists — skipped`); continue; }
@@ -172,7 +177,7 @@ router.post('/import', requireAdmin, async (req, res) => {
           title: p.title || p.name,
           page_type: p.page_type || 'standard', definition,
           nav_order: p.nav_order || 0,
-          required_level: p.required_level || 0, editGroup, is_home: p.is_home ? 1 : 0,
+          required_level: p.required_level || 0, editGroup, viewGroups, is_home: p.is_home ? 1 : 0,
           updated_at: store.now(),
         });
         scanner.invalidatePage(p.name);
@@ -181,7 +186,7 @@ router.post('/import', requireAdmin, async (req, res) => {
           name: p.name, title: p.title || p.name,
           page_type: p.page_type || 'standard', definition,
           nav_order: p.nav_order || 0,
-          required_level: p.required_level || 0, editGroup, is_home: p.is_home ? 1 : 0,
+          required_level: p.required_level || 0, editGroup, viewGroups, is_home: p.is_home ? 1 : 0,
           created_by: req.user.id, created_at: store.now(), updated_at: store.now(),
         });
       }

@@ -1,6 +1,7 @@
 const express = require('express');
 const store = require('../store');
-const { authMiddleware, requireAdmin } = require('../auth');
+const { authMiddleware, optionalAuth, requireAdmin } = require('../auth');
+const { canViewPage, pageViewGroups } = require('../services/access');
 const scanner = require('../scanner');
 
 const router = express.Router();
@@ -13,8 +14,20 @@ function navCmp(a, b) {
 
 // ── Public runtime reads (no auth) ────────────────────────────────────────────
 // The operator panel renders pages without a session. Widget-level password
-// prompts are the runtime security boundary, so page-level required_level is
-// not enforced here.
+// prompts guard writes; a page's `viewGroups` (if any) guards VIEWING it: the
+// definition is only served to a caller whose group may see the page. The
+// legacy required_level / page editGroup are designer metadata, not enforced.
+
+// Keep viewGroups well-formed: unique numeric ids of existing groups.
+function sanitizeViewGroups(raw) {
+  const existing = new Set(store.groups.all().map((g) => Number(g.id)));
+  const out = [];
+  for (const v of Array.isArray(raw) ? raw : []) {
+    const id = Number(v);
+    if (Number.isFinite(id) && existing.has(id) && !out.includes(id)) out.push(id);
+  }
+  return out;
+}
 
 // Home page name: explicit is_home flag, else first by nav_order.
 router.get('/meta/home', (req, res) => {
@@ -26,11 +39,19 @@ router.get('/meta/home', (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// Get full page (with definition) — public for runtime rendering.
-router.get('/:name', (req, res) => {
+// Get full page (with definition) — public for runtime rendering unless the page
+// is restricted to some groups. A refused caller gets 403 with just enough to
+// draw the "restricted" screen (title + required group ids), never the definition.
+router.get('/:name', optionalAuth, (req, res) => {
   try {
     const page = store.pages.find((p) => p.name === req.params.name);
     if (!page) return res.status(404).json({ error: 'Page not found' });
+    if (!canViewPage(req.user, page)) {
+      return res.status(403).json({
+        error: 'Page restricted', restricted: true, loggedIn: !!req.user,
+        name: page.name, title: page.title, viewGroups: pageViewGroups(page),
+      });
+    }
     res.json(page);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -44,7 +65,7 @@ router.get('/', (req, res) => {
     const rows = store.pages.all().slice().sort(navCmp).map((p) => ({
       id: p.id, name: p.name, title: p.title,
       page_type: p.page_type, nav_order: p.nav_order,
-      required_level: p.required_level, is_home: p.is_home, updated_at: p.updated_at,
+      required_level: p.required_level, viewGroups: pageViewGroups(p), is_home: p.is_home, updated_at: p.updated_at,
     }));
     res.json(rows);
   } catch (e) { res.status(500).json({ error: e.message }); }
@@ -57,7 +78,7 @@ function clearOtherHome(exceptName) {
 
 // Create page
 router.post('/', requireAdmin, (req, res) => {
-  const { name, title, page_type, definition, nav_order, required_level, is_home } = req.body;
+  const { name, title, page_type, definition, nav_order, required_level, is_home, viewGroups } = req.body;
   if (!name) return res.status(400).json({ error: 'name required' });
   try {
     if (store.pages.find((p) => p.name === name)) {
@@ -68,7 +89,7 @@ router.post('/', requireAdmin, (req, res) => {
       name, title: title || name,
       page_type: page_type || 'standard', definition: definition || { widgets: [] },
       nav_order: nav_order || 0,
-      required_level: required_level || 0, is_home: is_home ? 1 : 0,
+      required_level: required_level || 0, viewGroups: sanitizeViewGroups(viewGroups), is_home: is_home ? 1 : 0,
       created_by: req.user.id, created_at: store.now(), updated_at: store.now(),
     });
     res.json(row);
@@ -77,15 +98,19 @@ router.post('/', requireAdmin, (req, res) => {
 
 // Update page definition
 router.put('/:name', requireAdmin, (req, res) => {
-  const { title, page_type, definition, nav_order, required_level, is_home } = req.body;
+  const { title, page_type, definition, nav_order, required_level, is_home, viewGroups } = req.body;
   try {
     if (is_home) clearOtherHome(req.params.name);
-    const n = store.pages.update((p) => p.name === req.params.name, {
+    const patch = {
       title, page_type: page_type || 'standard',
       definition: definition || { widgets: [] },
       nav_order: nav_order || 0, required_level: required_level || 0,
       is_home: is_home ? 1 : 0, updated_at: store.now(),
-    });
+    };
+    // Only touch the access list when the caller sends it, so a save that
+    // predates the setting can never silently make a restricted page public.
+    if (viewGroups !== undefined) patch.viewGroups = sanitizeViewGroups(viewGroups);
+    const n = store.pages.update((p) => p.name === req.params.name, patch);
     if (!n) return res.status(404).json({ error: 'Page not found' });
     scanner.invalidatePage(req.params.name);
     res.json({ ok: true });

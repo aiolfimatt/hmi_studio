@@ -11,6 +11,9 @@ services:
     image: hmi-studio-opcua-testbench
     expose:
       - "4840"
+    volumes:
+      # Edit test-bench/variables.json on the host to add/remove variables live.
+      - ./test-bench/variables.json:/srv/variables.json:ro
 
   hmi:
     build: .

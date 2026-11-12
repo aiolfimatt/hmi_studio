@@ -1,0 +1,16 @@
+{
+  "_comment": "OPC UA test-bench variables. Each entry becomes ns=1;s=<path>; dots in the path create parent objects. 'value' is the start value only — after that, the server never changes it: only clients (HMI Studio) write it. Edit this file while the server runs: added/removed/retyped variables are applied live, untouched ones keep their current value. Types: Boolean SByte Byte Int16 UInt16 Int32 UInt32 Int64 UInt64 Float Double String. Optional 'length' makes an array (value = one fill value, or a list).",
+  "variables": [
+    { "path": "GVL_PLC.PLC_MEM", "type": "Int32", "length": 256, "value": 0 },
+    { "path": "GVL_PLC.aAlarms", "type": "Boolean", "length": 64, "value": false },
+    { "path": "MAIN.fSpeed", "type": "Double", "value": 1500 },
+    { "path": "MAIN.bRunning", "type": "Boolean", "value": false },
+    { "path": "MAIN.nCounter", "type": "Int32", "value": 0 },
+    { "path": "MAIN.sRecipe", "type": "String", "value": "DEFAULT" },
+
+    { "path": "GRID.aName",    "type": "String",  "length": 10, "value": ["Station 1", "Station 2", "Station 3", "Station 4", "Station 5", "Station 6", "Station 7", "Station 8", "Station 9", "Station 10"] },
+    { "path": "GRID.aTemp",    "type": "Double",  "length": 10, "value": [21.5, 22.1, 23.8, 19.9, 25.0, 24.4, 20.7, 22.9, 26.3, 18.6] },
+    { "path": "GRID.aCount",   "type": "Int32",   "length": 10, "value": [120, 87, 45, 300, 12, 0, 66, 154, 9, 230] },
+    { "path": "GRID.aEnabled", "type": "Boolean", "length": 10, "value": [true, true, false, true, false, true, true, false, true, true] }
+  ]
+}

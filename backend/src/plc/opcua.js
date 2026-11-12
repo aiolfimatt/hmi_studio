@@ -94,16 +94,55 @@ async function getSession(machine) {
 // position N maps to element N(+base) of the configured data-array node, mirroring
 // ads.js's offset→array-element model for migrated Power-PLC pages.
 const NODEID_RE = /^(ns=\d+;)?[isgb]=/i;
+const ELEMENT_RE = /^(.*\S)\[(\d+)\]$/;
+function toNodeId(machine, a) {
+  if (NODEID_RE.test(a)) return a;
+  const ns = machine.opcua?.namespace;
+  if (ns != null && a) return `ns=${ns};s=${a}`;
+  return a;
+}
 function resolveAddress(machine, address) {
   const a = String(address ?? '').trim();
   if (/^\d+$/.test(a)) {
     const d = machine.opcua?.nodes_data || {};
     if (d.nodeid) return { nodeId: d.nodeid, indexRange: String(Number(a) + (Number(d.base) || 0)) };
   }
-  if (NODEID_RE.test(a)) return { nodeId: a };
-  const ns = machine.opcua?.namespace;
-  if (ns != null && a) return { nodeId: `ns=${ns};s=${a}` };
-  return { nodeId: a };
+  return { nodeId: toNodeId(machine, a) };
+}
+
+// Array-element addresses ("<node>[i]") — what the grid ("<col>[row]") and the io
+// widget ("<base>[bit]") generate. Some servers expose each element as its own node
+// literally named "MAIN.arr[3]" (TwinCAT, S7-1500), others only the array node. So
+// the literal NodeId is tried first; if the server answers BadNodeIdUnknown, the
+// address is re-read as element i of "<node>" via indexRange. The outcome is cached
+// per endpoint+address so each address costs at most one failed round-trip.
+const elementMode = new Map(); // `${endpoint}|${address}` → 'literal' | 'range'
+function elementFallback(machine, address) {
+  const a = String(address ?? '').trim();
+  const m = ELEMENT_RE.exec(a);
+  if (!m || /^\d+$/.test(a)) return null;
+  return { nodeId: toNodeId(machine, m[1]), indexRange: m[2] };
+}
+function isNodeIdUnknown(statusCode) {
+  return !!statusCode && OPC && statusCode.value === OPC.StatusCodes.BadNodeIdUnknown.value;
+}
+// Run op(target) against the right form of the address, learning which form works.
+async function withElementFallback(machine, address, op) {
+  const alt = elementFallback(machine, address);
+  if (!alt) return (await op(resolveAddress(machine, address))).result;
+  const k = `${key(machine)}|${address}`;
+  if (elementMode.get(k) === 'range') return (await op(alt)).result;
+  const first = await op(resolveAddress(machine, address));
+  if (!isNodeIdUnknown(first.statusCode)) { elementMode.set(k, 'literal'); return first.result; }
+  elementMode.set(k, 'range');
+  return (await op(alt)).result;
+}
+
+// A single-element indexRange read returns a 1-element array; widgets want the scalar.
+function unwrapSingle(value, indexRange) {
+  if (indexRange == null || String(indexRange).includes(':')) return value;
+  if ((Array.isArray(value) || ArrayBuffer.isView(value)) && value.length === 1) return value[0];
+  return value;
 }
 
 // widget dataType → OPC UA DataType for writes.
@@ -134,28 +173,31 @@ function isGood(statusCode) {
 
 async function readValue(machine, { address }) {
   const { session } = await getSession(machine);
-  const { nodeId, indexRange } = resolveAddress(machine, address);
-  const toRead = { nodeId, attributeId: OPC.AttributeIds.Value };
-  if (indexRange != null) toRead.indexRange = indexRange;
-  const dv = await session.read(toRead);
-  if (!dv || !isGood(dv.statusCode)) return null;
-  return dv.value ? dv.value.value : null;
+  return withElementFallback(machine, address, async ({ nodeId, indexRange }) => {
+    const toRead = { nodeId, attributeId: OPC.AttributeIds.Value };
+    if (indexRange != null) toRead.indexRange = indexRange;
+    const dv = await session.read(toRead);
+    const statusCode = dv && dv.statusCode;
+    if (!dv || !isGood(statusCode)) return { statusCode, result: null };
+    return { statusCode, result: dv.value ? unwrapSingle(dv.value.value, indexRange) : null };
+  });
 }
 
 async function writeValue(machine, { address, value, dataType }) {
   const { session } = await getSession(machine);
-  const { nodeId, indexRange } = resolveAddress(machine, address);
   const dt = opcuaDataType(dataType);
   const coerced = coerceForWrite(value, dataType);
-  // An indexRange write targets a single array element, so the Variant must carry
-  // a one-element array; a plain scalar write carries the value directly.
-  const variant = indexRange != null
-    ? new OPC.Variant({ dataType: dt, arrayType: OPC.VariantArrayType.Array, value: [coerced] })
-    : new OPC.Variant({ dataType: dt, value: coerced });
-  const toWrite = { nodeId, attributeId: OPC.AttributeIds.Value, value: { value: variant } };
-  if (indexRange != null) toWrite.indexRange = indexRange;
-  const status = await session.write(toWrite);
-  return isGood(status);
+  return withElementFallback(machine, address, async ({ nodeId, indexRange }) => {
+    // An indexRange write targets a single array element, so the Variant must carry
+    // a one-element array; a plain scalar write carries the value directly.
+    const variant = indexRange != null
+      ? new OPC.Variant({ dataType: dt, arrayType: OPC.VariantArrayType.Array, value: [coerced] })
+      : new OPC.Variant({ dataType: dt, value: coerced });
+    const toWrite = { nodeId, attributeId: OPC.AttributeIds.Value, value: { value: variant } };
+    if (indexRange != null) toWrite.indexRange = indexRange;
+    const statusCode = await session.write(toWrite);
+    return { statusCode, result: isGood(statusCode) };
+  });
 }
 
 // Read the batch-counter array node (`opcua.counters_nodeid`) as a flat number[].
@@ -260,6 +302,7 @@ async function disconnectAll() {
     }
     clients.delete(k);
   }
+  elementMode.clear(); // the server's address space may differ after a reconnect
 }
 
 module.exports = {

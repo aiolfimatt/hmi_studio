@@ -2,7 +2,7 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import { ConfigProvider, App as AntApp, theme } from 'antd'
-import itIT from 'antd/locale/it_IT'
+import enUS from 'antd/locale/en_US'
 import App from './App'
 import { reportClientError } from './utils/clientLog'
 import './index.css'
@@ -60,7 +60,8 @@ const hmiTheme = {
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <ConfigProvider theme={hmiTheme} locale={itIT}>
+    {/* Locale here is only the fallback: App's AntdLocale picks it per route/language. */}
+    <ConfigProvider theme={hmiTheme} locale={enUS}>
       <AntApp>
         <BrowserRouter>
           <App />

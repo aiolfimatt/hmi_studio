@@ -15,6 +15,7 @@ import ButtonWidget      from './ButtonWidget'
 import TogglePixmapWidget from './TogglePixmapWidget'
 import GridWidget        from './GridWidget'
 import UsersPanelWidget   from './UsersPanelWidget'
+import AuditTrailWidget   from './AuditTrailWidget'
 import CyclingAlarmsWidget from './CyclingAlarmsWidget'
 import ProgressBarWidget   from './ProgressBarWidget'
 import SidebarWidget       from './SidebarWidget'
@@ -139,6 +140,9 @@ export function WidgetContent({ widget, values = {}, onWrite, onSession, runtime
 
       case 'users_panel':
         return <UsersPanelWidget editor={editor} auth={userAdmin} onLogin={() => onSession?.('login')} />
+
+      case 'audit_trail':
+        return <AuditTrailWidget widgetProps={wp} editor={editor} auth={userAdmin} onLogin={() => onSession?.('login')} />
 
       case 'cycling_alarms':
         return <CyclingAlarmsWidget widgetProps={wp} alarms={alarms} />

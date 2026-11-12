@@ -3,7 +3,9 @@ import { Routes, Route, Navigate, Outlet, useNavigate, useLocation } from 'react
 import ErrorBoundary from './components/ErrorBoundary'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { EditorLockProvider } from './contexts/EditorLockContext'
-import { LanguageProvider } from './contexts/LanguageContext'
+import { LanguageProvider, useLanguage } from './contexts/LanguageContext'
+import { t } from './i18n/uiStrings'
+import AntdLocale from './i18n/AntdLocale'
 import { ExternalFrameProvider } from './contexts/ExternalFrameContext'
 import Layout from './components/Layout'
 import LanguageSelector from './components/LanguageSelector'
@@ -72,6 +74,7 @@ function RuntimeShell() {
 // Resolve the configured home page and jump straight to it.
 function RuntimeHome() {
   const navigate = useNavigate()
+  const { lang, defaultLang } = useLanguage()
   const [state, setState] = useState({ loading: true, name: null })
 
   useEffect(() => {
@@ -87,8 +90,8 @@ function RuntimeHome() {
   if (state.loading) return <Spinner />
   if (!state.name) return (
     <div className="flex h-full flex-col items-center justify-center gap-2 p-8 text-center">
-      <h2 className="text-base font-semibold text-gray-700">Nessuna pagina configurata</h2>
-      <p className="text-sm text-gray-400">Accedi alla modalità modifica (<code>/edit</code>) per creare pagine HMI.</p>
+      <h2 className="text-base font-semibold text-gray-700">{t('noPages', lang, defaultLang)}</h2>
+      <p className="text-sm text-gray-400">{t('noPagesHint', lang, defaultLang, { path: '/edit' })}</p>
     </div>
   )
   return <Spinner />
@@ -138,6 +141,7 @@ export default function App() {
   return (
     <AuthProvider>
       <LanguageProvider>
+      <AntdLocale>
       <ExternalFrameProvider>
       <VirtualKeyboard />
       <ErrorBoundary resetKeys={[location.pathname]}>
@@ -166,6 +170,7 @@ export default function App() {
       </Routes>
       </ErrorBoundary>
       </ExternalFrameProvider>
+      </AntdLocale>
       </LanguageProvider>
     </AuthProvider>
   )

@@ -80,7 +80,29 @@ function accessGroupsFromUser(user) {
   return [];
 }
 
+// ── Page visibility ───────────────────────────────────────────────────────────
+// A page may carry `viewGroups` (array of group ids). Empty/absent → every
+// runtime screen may open it. Otherwise the caller must belong (through the group
+// closure) to ANY of them — the same OR semantics as widget editGroups. Holders
+// of editMode (designers/admins) see every page. Both checks re-resolve the
+// caller's group against the LIVE store, so a stale token can't keep access a
+// group no longer grants.
+function pageViewGroups(page) {
+  const list = Array.isArray(page?.viewGroups) ? page.viewGroups : [];
+  return list.filter((g) => g != null && Number.isFinite(Number(g))).map(Number);
+}
+
+function canViewPage(user, page) {
+  const required = pageViewGroups(page);
+  if (required.length === 0) return true;
+  if (!user || user.group == null) return false;
+  const live = resolveUser(user.group);
+  if (user.capabilities?.editMode && live.capabilities.editMode) return true;
+  return checkGroupAccess(live.accessGroups, required);
+}
+
 module.exports = {
   checkWidgetAccess, levelsFromUser, USER_LEVEL,
   checkGroupAccess, accessGroupsFromUser,
+  pageViewGroups, canViewPage,
 };

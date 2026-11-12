@@ -2,7 +2,7 @@
  * Group management (designer / edit-mode only).
  *
  * Groups define the access model: named groups, an inheritance DAG (`includes`)
- * and two capabilities (`editMode`, `manageUsers`). They are part of the project
+ * and capabilities (`editMode`, `manageUsers`, `viewAudit`). They are part of the project
  * and travel in the .hmiproj bundle. See services/groups.js for the semantics.
  *
  *   GET    /api/groups        list all groups
@@ -21,7 +21,7 @@ const router = express.Router();
 function clean(g) {
   return {
     id: g.id, name: g.name, includes: g.includes || [],
-    manageUsers: !!g.manageUsers, editMode: !!g.editMode, builtin: !!g.builtin,
+    manageUsers: !!g.manageUsers, editMode: !!g.editMode, viewAudit: !!g.viewAudit, builtin: !!g.builtin,
   };
 }
 
@@ -59,7 +59,7 @@ function sanitizeIncludes(includes, selfId) {
 }
 
 router.post('/', (req, res) => {
-  const { name, includes, manageUsers, editMode } = req.body || {};
+  const { name, includes, manageUsers, editMode, viewAudit } = req.body || {};
   if (!name || !String(name).trim()) return res.status(400).json({ error: 'name required' });
   try {
     if (store.groups.find((g) => g.name === name)) {
@@ -74,7 +74,7 @@ router.post('/', (req, res) => {
     }
     const row = store.groups.insert({
       name: String(name).trim(), includes: inc,
-      manageUsers: !!manageUsers, editMode: !!editMode, builtin: false,
+      manageUsers: !!manageUsers, editMode: !!editMode, viewAudit: !!viewAudit, builtin: false,
     });
     res.json(clean(row));
   } catch (e) { res.status(500).json({ error: e.message }); }
@@ -82,7 +82,7 @@ router.post('/', (req, res) => {
 
 router.put('/:id', (req, res) => {
   const id = Number(req.params.id);
-  const { name, includes, manageUsers, editMode } = req.body || {};
+  const { name, includes, manageUsers, editMode, viewAudit } = req.body || {};
   try {
     const existing = store.groups.find((g) => Number(g.id) === id);
     if (!existing) return res.status(404).json({ error: 'Group not found' });
@@ -97,6 +97,7 @@ router.put('/:id', (req, res) => {
     if (name !== undefined) patch.name = String(name).trim();
     if (manageUsers !== undefined) patch.manageUsers = !!manageUsers;
     if (editMode !== undefined) patch.editMode = !!editMode;
+    if (viewAudit !== undefined) patch.viewAudit = !!viewAudit;
     store.groups.update((g) => Number(g.id) === id, patch);
     res.json(clean(store.groups.find((g) => Number(g.id) === id)));
   } catch (e) { res.status(500).json({ error: e.message }); }

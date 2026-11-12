@@ -148,6 +148,50 @@ export const UI = {
   activeAlarms:     { it: 'Allarmi attivi', en: 'Active alarms', fr: 'Alarmes actives', de: 'Aktive Alarme', es: 'Alarmas activas', pt: 'Alarmes ativos', ru: 'Активные аварии' },
   showActiveAlarms: { it: 'Mostra allarmi attivi', en: 'Show active alarms', fr: 'Afficher les alarmes actives', de: 'Aktive Alarme anzeigen', es: 'Mostrar alarmas activas', pt: 'Mostrar alarmes ativos', ru: 'Показать активные аварии' },
   noActiveAlarms:   { it: 'Nessun allarme attivo', en: 'No active alarms', fr: 'Aucune alarme active', de: 'Keine aktiven Alarme', es: 'Ninguna alarma activa', pt: 'Nenhum alarme ativo', ru: 'Нет активных аварий' },
+
+  // Audit trail widget
+  auditTrail:        { it: 'Audit trail', en: 'Audit trail', fr: "Journal d'audit", de: 'Audit-Trail', es: 'Registro de auditoría', pt: 'Registo de auditoria', ru: 'Журнал аудита' },
+  auditLoginRequired: { it: "Accedi per consultare l'audit trail.", en: 'Log in to view the audit trail.', fr: "Connectez-vous pour consulter le journal d'audit.", de: 'Melden Sie sich an, um den Audit-Trail anzuzeigen.', es: 'Inicia sesión para ver el registro de auditoría.', pt: 'Inicie sessão para ver o registo de auditoria.', ru: 'Войдите, чтобы просмотреть журнал аудита.' },
+  auditNoPermission: { it: "L'operatore non ha il permesso di consultare l'audit trail.", en: 'This operator is not allowed to view the audit trail.', fr: "Cet opérateur n'est pas autorisé à consulter le journal d'audit.", de: 'Dieser Bediener darf den Audit-Trail nicht anzeigen.', es: 'Este operador no tiene permiso para ver el registro de auditoría.', pt: 'Este operador não tem permissão para ver o registo de auditoria.', ru: 'У этого оператора нет прав на просмотр журнала аудита.' },
+  auditColTime:      { it: 'Data/ora', en: 'Time', fr: 'Date/heure', de: 'Zeit', es: 'Fecha/hora', pt: 'Data/hora', ru: 'Время' },
+  auditColUser:      { it: 'Utente', en: 'User', fr: 'Utilisateur', de: 'Benutzer', es: 'Usuario', pt: 'Utilizador', ru: 'Пользователь' },
+  auditColEvent:     { it: 'Evento', en: 'Event', fr: 'Événement', de: 'Ereignis', es: 'Evento', pt: 'Evento', ru: 'Событие' },
+  auditColObject:    { it: 'Oggetto', en: 'Object', fr: 'Objet', de: 'Objekt', es: 'Objeto', pt: 'Objeto', ru: 'Объект' },
+  auditColAddress:   { it: 'Indirizzo', en: 'Address', fr: 'Adresse', de: 'Adresse', es: 'Dirección', pt: 'Endereço', ru: 'Адрес' },
+  auditColChange:    { it: 'Modifica', en: 'Change', fr: 'Modification', de: 'Änderung', es: 'Cambio', pt: 'Alteração', ru: 'Изменение' },
+  auditColReason:    { it: 'Motivo', en: 'Reason', fr: 'Motif', de: 'Grund', es: 'Motivo', pt: 'Motivo', ru: 'Причина' },
+  auditAllEvents:    { it: 'Tutti gli eventi', en: 'All events', fr: 'Tous les événements', de: 'Alle Ereignisse', es: 'Todos los eventos', pt: 'Todos os eventos', ru: 'Все события' },
+  auditSearch:       { it: 'Cerca…', en: 'Search…', fr: 'Rechercher…', de: 'Suchen…', es: 'Buscar…', pt: 'Pesquisar…', ru: 'Поиск…' },
+  auditFrom:         { it: 'Dal', en: 'From', fr: 'Du', de: 'Von', es: 'Desde', pt: 'De', ru: 'С' },
+  auditTo:           { it: 'Al', en: 'To', fr: 'Au', de: 'Bis', es: 'Hasta', pt: 'Até', ru: 'По' },
+  auditRefresh:      { it: 'Aggiorna', en: 'Refresh', fr: 'Actualiser', de: 'Aktualisieren', es: 'Actualizar', pt: 'Atualizar', ru: 'Обновить' },
+  auditExport:       { it: 'Esporta CSV', en: 'Export CSV', fr: 'Exporter CSV', de: 'CSV exportieren', es: 'Exportar CSV', pt: 'Exportar CSV', ru: 'Экспорт CSV' },
+  auditPrev:         { it: 'Pagina precedente', en: 'Previous page', fr: 'Page précédente', de: 'Vorherige Seite', es: 'Página anterior', pt: 'Página anterior', ru: 'Предыдущая страница' },
+  auditNext:         { it: 'Pagina successiva', en: 'Next page', fr: 'Page suivante', de: 'Nächste Seite', es: 'Página siguiente', pt: 'Página seguinte', ru: 'Следующая страница' },
+  auditEmpty:        { it: 'Nessun record', en: 'No records', fr: 'Aucun enregistrement', de: 'Keine Einträge', es: 'Sin registros', pt: 'Sem registos', ru: 'Нет записей' },
+  auditRange:        { it: '{first}–{last} di {total}', en: '{first}–{last} of {total}', fr: '{first}–{last} sur {total}', de: '{first}–{last} von {total}', es: '{first}–{last} de {total}', pt: '{first}–{last} de {total}', ru: '{first}–{last} из {total}' },
+  auditEvValueModified:  { it: 'Valore modificato', en: 'Value changed', fr: 'Valeur modifiée', de: 'Wert geändert', es: 'Valor modificado', pt: 'Valor alterado', ru: 'Значение изменено' },
+  auditEvLogin:          { it: 'Accesso', en: 'Login', fr: 'Connexion', de: 'Anmeldung', es: 'Inicio de sesión', pt: 'Início de sessão', ru: 'Вход' },
+  auditEvLogout:         { it: 'Disconnessione', en: 'Logout', fr: 'Déconnexion', de: 'Abmeldung', es: 'Cierre de sesión', pt: 'Fim de sessão', ru: 'Выход' },
+  auditEvLoginLocked:    { it: 'Account bloccato', en: 'Account locked', fr: 'Compte verrouillé', de: 'Konto gesperrt', es: 'Cuenta bloqueada', pt: 'Conta bloqueada', ru: 'Учётная запись заблокирована' },
+  auditEvScriptRun:      { it: 'Script eseguito', en: 'Script run', fr: 'Script exécuté', de: 'Skript ausgeführt', es: 'Script ejecutado', pt: 'Script executado', ru: 'Запуск скрипта' },
+  auditEvUserCreated:    { it: 'Utente creato', en: 'User created', fr: 'Utilisateur créé', de: 'Benutzer angelegt', es: 'Usuario creado', pt: 'Utilizador criado', ru: 'Пользователь создан' },
+  auditEvUserDeleted:    { it: 'Utente eliminato', en: 'User deleted', fr: 'Utilisateur supprimé', de: 'Benutzer gelöscht', es: 'Usuario eliminado', pt: 'Utilizador eliminado', ru: 'Пользователь удалён' },
+  auditEvUserModified:   { it: 'Utente modificato', en: 'User modified', fr: 'Utilisateur modifié', de: 'Benutzer geändert', es: 'Usuario modificado', pt: 'Utilizador alterado', ru: 'Пользователь изменён' },
+  auditEvPasswordChanged: { it: 'Password cambiata', en: 'Password changed', fr: 'Mot de passe changé', de: 'Passwort geändert', es: 'Contraseña cambiada', pt: 'Palavra-passe alterada', ru: 'Пароль изменён' },
+  auditEvUserDisabled:   { it: 'Utente disabilitato', en: 'User disabled', fr: 'Utilisateur désactivé', de: 'Benutzer deaktiviert', es: 'Usuario deshabilitado', pt: 'Utilizador desativado', ru: 'Пользователь отключён' },
+  auditEvUserEnabled:    { it: 'Utente abilitato', en: 'User enabled', fr: 'Utilisateur activé', de: 'Benutzer aktiviert', es: 'Usuario habilitado', pt: 'Utilizador ativado', ru: 'Пользователь включён' },
+
+  // Restricted pages (page visible only to some groups)
+  pageRestrictedLogin:  { it: 'Questa pagina è riservata. Accedi per visualizzarla.', en: 'This page is restricted. Log in to view it.', fr: 'Cette page est réservée. Connectez-vous pour la consulter.', de: 'Diese Seite ist eingeschränkt. Melden Sie sich an, um sie anzuzeigen.', es: 'Esta página está restringida. Inicia sesión para verla.', pt: 'Esta página é restrita. Inicie sessão para a ver.', ru: 'Доступ к этой странице ограничен. Войдите, чтобы открыть её.' },
+  pageRestrictedDenied: { it: "L'operatore attuale non ha accesso a questa pagina.", en: 'The current operator is not allowed to view this page.', fr: "L'opérateur actuel n'est pas autorisé à consulter cette page.", de: 'Der aktuelle Bediener darf diese Seite nicht anzeigen.', es: 'El operador actual no tiene permiso para ver esta página.', pt: 'O operador atual não tem permissão para ver esta página.', ru: 'Текущему оператору не разрешено открывать эту страницу.' },
+  pageRestrictedGroups: { it: 'Gruppi abilitati: {groups}', en: 'Allowed groups: {groups}', fr: 'Groupes autorisés : {groups}', de: 'Zugelassene Gruppen: {groups}', es: 'Grupos permitidos: {groups}', pt: 'Grupos permitidos: {groups}', ru: 'Разрешённые группы: {groups}' },
+  switchOperator:       { it: 'Cambia operatore', en: 'Switch operator', fr: "Changer d'opérateur", de: 'Bediener wechseln', es: 'Cambiar operador', pt: 'Mudar de operador', ru: 'Сменить оператора' },
+
+  // Runtime empty states
+  noWidgets:        { it: 'Nessun widget configurato', en: 'No widgets configured', fr: 'Aucun widget configuré', de: 'Keine Widgets konfiguriert', es: 'Ningún widget configurado', pt: 'Nenhum widget configurado', ru: 'Виджеты не настроены' },
+  noPages:          { it: 'Nessuna pagina configurata', en: 'No pages configured', fr: 'Aucune page configurée', de: 'Keine Seiten konfiguriert', es: 'Ninguna página configurada', pt: 'Nenhuma página configurada', ru: 'Страницы не настроены' },
+  noPagesHint:      { it: 'Accedi alla modalità modifica ({path}) per creare pagine HMI.', en: 'Open edit mode ({path}) to create HMI pages.', fr: 'Ouvrez le mode édition ({path}) pour créer des pages HMI.', de: 'Öffnen Sie den Bearbeitungsmodus ({path}), um HMI-Seiten zu erstellen.', es: 'Abre el modo edición ({path}) para crear páginas HMI.', pt: 'Abra o modo de edição ({path}) para criar páginas HMI.', ru: 'Откройте режим редактирования ({path}), чтобы создать страницы HMI.' },
 }
 
 /**

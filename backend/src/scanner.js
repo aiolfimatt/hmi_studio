@@ -16,6 +16,8 @@
 
 const conf = require('../../config/conf.json');
 const store = require('./store');
+const { userFromToken } = require('./auth');
+const { canViewPage } = require('./services/access');
 const ads = require('./plc/ads');
 const opcua = require('./plc/opcua');
 const simulator = require('./plc/simulator');
@@ -73,7 +75,16 @@ function init(socketIo) {
   io = socketIo;
 
   io.on('connection', (socket) => {
-    socket.on('subscribe_page', async (pageName) => {
+    // `auth` = { token } of the runtime operator (optional). A page restricted to
+    // some groups only streams its values to a screen whose operator may view it;
+    // a refused screen is told so and never joins the room.
+    socket.on('subscribe_page', async (pageName, auth) => {
+      const page = store.pages.find((p) => p.name === pageName);
+      if (page && !canViewPage(userFromToken(auth?.token), page)) {
+        socket.leave(`page:${pageName}`);
+        socket.emit('page_denied', pageName);
+        return;
+      }
       socket.join(`page:${pageName}`);
       await ensurePageLoaded(pageName);
       const vals = await readPageVariables(pageName);

@@ -8,11 +8,13 @@
  * nothing (e.g. a UserAdmin group that can manage users but not edit anything).
  *
  * Group row shape (data/groups.json, Collection('groups','id')):
- *   { id, name, includes:[groupId...], manageUsers:bool, editMode:bool, builtin?:bool }
+ *   { id, name, includes:[groupId...], manageUsers:bool, editMode:bool, viewAudit:bool, builtin?:bool }
  *
  * Capabilities:
  *   editMode    — may enter the designer / management area (old level-3 requireAdmin)
  *   manageUsers — may create/remove users and assign groups (usable at RUNTIME)
+ *   viewAudit   — may read the audit trail (runtime audit widget). Implied by
+ *                 editMode, so existing designer groups keep access with no migration.
  *
  * Per-object access: a protected object carries an `editGroup` (a group id). A
  * user in group G may write an object tagged T iff T ∈ closure(G).
@@ -24,10 +26,10 @@
 
 // Seeded defaults for a fresh install / blank project.
 const SEED_GROUPS = [
-  { id: 1, name: 'Operator',    includes: [],  manageUsers: false, editMode: false, builtin: true },
-  { id: 2, name: 'Maintenance', includes: [1], manageUsers: false, editMode: false, builtin: true },
-  { id: 3, name: 'Installer',   includes: [2], manageUsers: true,  editMode: true,  builtin: true },
-  { id: 4, name: 'UserAdmin',   includes: [],  manageUsers: true,  editMode: false, builtin: true }, // isolated
+  { id: 1, name: 'Operator',    includes: [],  manageUsers: false, editMode: false, viewAudit: false, builtin: true },
+  { id: 2, name: 'Maintenance', includes: [1], manageUsers: false, editMode: false, viewAudit: false, builtin: true },
+  { id: 3, name: 'Installer',   includes: [2], manageUsers: true,  editMode: true,  viewAudit: true,  builtin: true },
+  { id: 4, name: 'UserAdmin',   includes: [],  manageUsers: true,  editMode: false, viewAudit: true,  builtin: true }, // isolated
 ];
 
 // Legacy numeric level → group id. Used by the one-time migration (Phase 0) and
@@ -37,7 +39,7 @@ const SEED_GROUPS = [
 // (where 0 → Operator).
 const LEGACY_LEVEL_TO_GROUP = { 0: 1, 1: 1, 2: 2, 3: 3, 4: 3 };
 
-const NO_CAPS = { editMode: false, manageUsers: false };
+const NO_CAPS = { editMode: false, manageUsers: false, viewAudit: false };
 
 /** Build a Map<id, group> from a rows array. */
 function indexGroups(rows) {
@@ -69,14 +71,15 @@ function closureOf(groupId, index) {
   return out;
 }
 
-/** Aggregate {editMode, manageUsers} over closure(groupId). Orphan → all false. */
+/** Aggregate {editMode, manageUsers, viewAudit} over closure(groupId). Orphan → all false. */
 function capabilitiesOf(groupId, index) {
-  const caps = { editMode: false, manageUsers: false };
+  const caps = { ...NO_CAPS };
   for (const id of closureOf(groupId, index)) {
     const g = index.get(id);
     if (!g) continue;
     if (g.editMode) caps.editMode = true;
     if (g.manageUsers) caps.manageUsers = true;
+    if (g.viewAudit || g.editMode) caps.viewAudit = true;
   }
   return caps;
 }

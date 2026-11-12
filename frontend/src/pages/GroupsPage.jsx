@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
-import { Shield, Plus, Edit2, Trash2, X, Check, GitBranch, Users as UsersIcon, Settings } from 'lucide-react'
+import { Shield, Plus, Edit2, Trash2, X, Check, GitBranch, Users as UsersIcon, Settings, ScrollText } from 'lucide-react'
 import { groups as groupsApi } from '../api/client'
 import { useAuth } from '../contexts/AuthContext'
 
@@ -49,8 +49,8 @@ function createsCycle(list, selfId, proposedIncludes, candidate) {
 function GroupModal({ initial, allGroups, onConfirm, onClose }) {
   const isEdit = !!initial
   const [form, setForm] = useState(initial
-    ? { name: initial.name, includes: [...(initial.includes || [])], manageUsers: !!initial.manageUsers, editMode: !!initial.editMode }
-    : { name: '', includes: [], manageUsers: false, editMode: false })
+    ? { name: initial.name, includes: [...(initial.includes || [])], manageUsers: !!initial.manageUsers, editMode: !!initial.editMode, viewAudit: !!initial.viewAudit }
+    : { name: '', includes: [], manageUsers: false, editMode: false, viewAudit: false })
   const [saving, setSaving] = useState(false)
   const [err, setErr] = useState(null)
 
@@ -137,6 +137,11 @@ function GroupModal({ initial, allGroups, onConfirm, onClose }) {
               <input type="checkbox" checked={form.manageUsers}
                 onChange={e => setForm(f => ({ ...f, manageUsers: e.target.checked }))} />
               <UsersIcon size={13} className="text-gray-500" /> Manage users (create/remove, assign groups — at runtime)
+            </label>
+            <label className={`flex items-center gap-2 text-xs text-gray-700 ${form.editMode ? 'opacity-60' : 'cursor-pointer'}`}>
+              <input type="checkbox" checked={form.viewAudit || form.editMode} disabled={form.editMode}
+                onChange={e => setForm(f => ({ ...f, viewAudit: e.target.checked }))} />
+              <ScrollText size={13} className="text-gray-500" /> View audit trail (runtime audit widget{form.editMode ? ' — included with edit mode' : ''})
             </label>
           </div>
         </div>
@@ -264,7 +269,8 @@ export default function GroupsPage() {
                       <div className="flex flex-wrap gap-1">
                         {g.editMode && <span className="text-[10px] rounded-full px-2 py-0.5 bg-[#e6f0ff] border border-blue-200 text-[#1677ff]">editMode</span>}
                         {g.manageUsers && <span className="text-[10px] rounded-full px-2 py-0.5 bg-amber-50 border border-amber-200 text-amber-700">manageUsers</span>}
-                        {!g.editMode && !g.manageUsers && <span className="text-xs text-gray-400">—</span>}
+                        {g.viewAudit && !g.editMode && <span className="text-[10px] rounded-full px-2 py-0.5 bg-violet-50 border border-violet-200 text-violet-700">viewAudit</span>}
+                        {!g.editMode && !g.manageUsers && !g.viewAudit && <span className="text-xs text-gray-400">—</span>}
                       </div>
                     </td>
                     <td className="px-4 py-3">

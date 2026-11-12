@@ -1,14 +1,15 @@
 /**
  * Trace routes — query the local audit log (data/audit_log.jsonl via eventLog).
+ * Reading the audit trail requires the viewAudit capability (implied by editMode).
  */
 const express = require('express');
 const eventLog = require('../services/eventLog');
-const { authMiddleware, requireLevel } = require('../auth');
+const { authMiddleware, requireCapability } = require('../auth');
 
 const router = express.Router();
 router.use(authMiddleware);
 
-router.get('/', requireLevel(1), (req, res) => {
+router.get('/', requireCapability('viewAudit'), (req, res) => {
   const { event_type, from, to, username, q, limit = 200, offset = 0 } = req.query;
   try {
     const { rows, total } = eventLog.query({ event_type, from, to, username, q, limit, offset });

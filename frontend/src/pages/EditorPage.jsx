@@ -13,7 +13,7 @@ import {
   FilePlus,
   Square, RectangleHorizontal, Images, LayoutGrid, Package, Bell, Users,
   Grid2X2, Magnet, Download, FileText, PanelLeft, Search, RefreshCw, Gauge,
-  Repeat, Tag,
+  Repeat, Tag, ScrollText,
   Bookmark, Library, Pencil,
   AlignStartVertical, AlignCenterVertical, AlignEndVertical,
   AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal,
@@ -23,6 +23,7 @@ import { pages as pagesApi, assets as assetsApi, textio as textioApi, system as 
 import { EVENT_OPTIONS } from '../components/widgets/widgetEvents'
 import { editGroupList } from '../utils/access'
 import { WidgetContent } from '../components/widgets/WidgetRenderer'
+import { AUDIT_EVENTS, COLUMN_KEYS as AUDIT_COLUMNS } from '../components/widgets/AuditTrailWidget'
 import ErrorBoundary from '../components/ErrorBoundary'
 import MultiLangInput from '../components/i18n/MultiLangInput'
 import AntIconPicker from '../components/AntIconPicker'
@@ -50,6 +51,7 @@ const PALETTE_ITEMS = [
   { type: 'event_box',     icon: MousePointer2, label: 'Event Box',   color: 'bg-pink-900/60 border-pink-700/60',    category: 'widget' },
   { type: 'users_panel',   icon: Users,         label: 'User Mgmt',   color: 'bg-cyan-900/60 border-cyan-700/60',    category: 'special' },
   { type: 'cycling_alarms', icon: Bell,         label: 'Alarms',      color: 'bg-red-900/60 border-red-700/60',      category: 'special' },
+  { type: 'audit_trail',   icon: ScrollText,    label: 'Audit Trail', color: 'bg-blue-900/60 border-blue-700/60',    category: 'special' },
   { type: 'sidebar',       icon: PanelLeft,     label: 'Sidebar',     color: 'bg-slate-700/60 border-slate-500/60',  category: 'special' },
 ]
 
@@ -77,6 +79,7 @@ const DEFAULT_PROPS = {
   grid:          { title: '', rowCount: 8, showRowNumbers: true, source: 'plc', columns: [], structSymbol: '', multiEdit: false, requireComment: false, unit: '', decimals: 0 },
   event_box:     { label: '', plcAddress: '', onClick: 'navigate', targetPage: '', url: '', urlMode: 'overlay', writeAddress: '', writeValue: '', scriptName: '', conditionAddress: '', effectAddress: '', effectValue: 1, editGroup: null },
   cycling_alarms: { cycleInterval: 3000, fontSize: 15, showCode: true, emptyText: '', popupTitle: '' },
+  audit_trail:    { title: '', pageSize: 25, eventType: '', showFilters: true, autoRefreshSec: 0, allowExport: true, columns: ['ts', 'user', 'event', 'object', 'address', 'change', 'reason'] },
   users_panel:    {},   // embeds the full User Management page; uses the session token (admin context)
   sidebar:        {},   // content + style live in the global sidebar config (shared across pages)
 }
@@ -95,6 +98,7 @@ const DEFAULT_SIZE = {
   grid:          { w: 360, h: 220 },
   event_box:     { w: 140, h: 40 },
   users_panel:   { w: 640, h: 420 },
+  audit_trail:   { w: 720, h: 400 },
   cycling_alarms: { w: 320, h: 44 },
   sidebar:        { w: 96, h: 600 },
 }
@@ -103,7 +107,7 @@ const WIDGET_COLORS = {
   toggle_button: '#f59e0b', toggle_multi: '#14b8a6',
   pixmap: '#f97316', stl_viewer: '#06b6d4', event_box: '#ec4899',
   box: '#94a3b8', button: '#6366f1', toggle_pixmap: '#eab308', grid: '#d946ef',
-  users_panel: '#06b6d4', cycling_alarms: '#dc2626', sidebar: '#64748b',
+  users_panel: '#06b6d4', cycling_alarms: '#dc2626', sidebar: '#64748b', audit_trail: '#1677ff',
 }
 
 function snap(val) { return Math.round(val / GRID) * GRID }
@@ -837,7 +841,7 @@ function useGroups() {
 // Multi-group selector: a widget may be editable by ANY of several groups (OR).
 // Stores a number[] of group ids, or null when nothing is checked (unprotected).
 // `mixed` (multi-edit panel) shows nothing checked until the designer overrides.
-function GroupMultiSel({ value, onChange, mixed = false }) {
+function GroupMultiSel({ value, onChange, mixed = false, emptyText = 'None (unprotected)' }) {
   const gs = useGroups()
   const selected = editGroupList(value)
   const toggle = (id) => {
@@ -851,7 +855,7 @@ function GroupMultiSel({ value, onChange, mixed = false }) {
       {gs.length === 0 && <p className="text-[10px] text-gray-400">No groups defined</p>}
       {mixed && <p className="text-[10px] text-amber-600">mixed — checking a box overrides all</p>}
       {!mixed && selected.length === 0 && gs.length > 0 && (
-        <p className="text-[10px] text-gray-400">None (unprotected)</p>
+        <p className="text-[10px] text-gray-400">{emptyText}</p>
       )}
       {gs.map(g => (
         <label key={g.id} className="flex items-center gap-2 cursor-pointer text-xs text-gray-700">
@@ -1213,8 +1217,8 @@ function TypeProps({ type, props: p, onChange: op, onBrowse, pageOptions = [] })
     case 'toggle_pixmap': return <>
       <PropField label="Mode">
         <SEL value={p.stateMode} onChange={v => s('stateMode', v)} options={[
-          { value: 'bool', label: '2 stati (bool)' },
-          { value: 'multi', label: 'Multi stato (valore)' },
+          { value: 'bool', label: '2 states (bool)' },
+          { value: 'multi', label: 'Multi-state (value)' },
         ]} />
       </PropField>
       <ImageField label="Image — state 1" value={p.file1} onChange={v => s('file1', v)} onBrowse={onBrowse} />
@@ -1232,7 +1236,7 @@ function TypeProps({ type, props: p, onChange: op, onBrowse, pageOptions = [] })
       <PropField label="Clickable">
         <label className="flex items-center gap-2 cursor-pointer">
           <input type="checkbox" className="accent-blue-500" checked={!!p.sensible} onChange={e => s('sensible', e.target.checked)} />
-          <span className="text-xs text-gray-500">Sensibile al click</span>
+          <span className="text-xs text-gray-500">Responds to clicks</span>
         </label>
       </PropField>
       {p.sensible && <>
@@ -1255,9 +1259,59 @@ function TypeProps({ type, props: p, onChange: op, onBrowse, pageOptions = [] })
       <PropField label="«No alarms» text"><SI value={p.emptyText} onChange={v => s('emptyText', v)} placeholder="Auto (translated)" /></PropField>
       <PropField label="Alarm popup title"><SI value={p.popupTitle} onChange={v => s('popupTitle', v)} placeholder="Auto (translated)" /></PropField>
     </>
+    case 'audit_trail': return <AuditTrailPropsEditor p={p} s={s} />
     case 'sidebar': return <SidebarConfigEditor pageOptions={pageOptions} onBrowse={onBrowse} />
     default: return <p className="text-xs text-gray-400">No configurable props.</p>
   }
+}
+
+// ---------------------------------------------------------------------------
+// Audit trail widget props. Event names here are the English designer labels;
+// the runtime widget shows them translated.
+// ---------------------------------------------------------------------------
+const AUDIT_EVENT_LABELS = {
+  512: 'Value changed', 513: 'Login', 514: 'Logout', 516: 'Account locked', 517: 'Script run',
+  612: 'User created', 613: 'User deleted', 614: 'User modified', 615: 'Password changed',
+  616: 'User disabled', 617: 'User enabled',
+}
+const AUDIT_COLUMN_LABELS = {
+  ts: 'Time', user: 'User', event: 'Event', object: 'Object (page › widget / account)',
+  address: 'PLC address', change: 'Change (old → new)', reason: 'Reason / comment',
+}
+function AuditTrailPropsEditor({ p, s }) {
+  const cols = Array.isArray(p.columns) && p.columns.length ? p.columns : AUDIT_COLUMNS
+  const toggleCol = (c, on) => {
+    const next = AUDIT_COLUMNS.filter((k) => (k === c ? on : cols.includes(k)))
+    s('columns', next.length ? next : [c]) // never allow zero columns
+  }
+  return <>
+    <PropField label="Title"><MultiLangInput value={p.title} onChange={v => s('title', v)} /></PropField>
+    <p className="text-[10px] text-gray-400 -mt-1">Empty → “Audit trail”, translated.</p>
+    <div className="grid grid-cols-2 gap-2">
+      <PropField label="Rows per page"><NI value={p.pageSize} onChange={v => s('pageSize', v)} /></PropField>
+      <PropField label="Auto-refresh (s)"><NI value={p.autoRefreshSec} onChange={v => s('autoRefreshSec', v)} /></PropField>
+    </div>
+    <p className="text-[10px] text-gray-400 -mt-1">Auto-refresh 0 = off (operator uses the refresh button).</p>
+    <PropField label="Events">
+      <SEL value={p.eventType ?? ''} onChange={v => s('eventType', v)} options={[
+        { value: '', label: 'All (operator can filter)' },
+        ...AUDIT_EVENTS.map(e => ({ value: String(e.code), label: `Only: ${AUDIT_EVENT_LABELS[e.code]}` })),
+      ]} />
+    </PropField>
+    <PropField label="Filters"><Chk checked={p.showFilters !== false} onChange={v => s('showFilters', v)} text="Show filter bar (event, user, text, dates)" /></PropField>
+    <PropField label="Export"><Chk checked={p.allowExport !== false} onChange={v => s('allowExport', v)} text="CSV export button" /></PropField>
+    <PropField label="Columns">
+      <div className="space-y-1">
+        {AUDIT_COLUMNS.map(c => (
+          <Chk key={c} checked={cols.includes(c)} onChange={v => toggleCol(c, v)} text={AUDIT_COLUMN_LABELS[c]} />
+        ))}
+      </div>
+    </PropField>
+    <p className="text-[10px] text-gray-400 leading-snug">
+      At runtime the operator must log in with a group that has the “View audit trail”
+      permission (Groups page). Edit-mode groups have it automatically.
+    </p>
+  </>
 }
 
 // ---------------------------------------------------------------------------
@@ -1419,7 +1473,7 @@ function GridPropsEditor({ p, onChange }) {
       <PropField label="Row #">
         <label className="flex items-center gap-2 cursor-pointer h-7">
           <input type="checkbox" className="accent-blue-500" checked={!!p.showRowNumbers} onChange={e => onChange('showRowNumbers', e.target.checked)} />
-          <span className="text-xs text-gray-500">Mostra</span>
+          <span className="text-xs text-gray-500">Show</span>
         </label>
       </PropField>
     </div>
@@ -1925,7 +1979,6 @@ function MetaModal({ meta, onSave, onClose }) {
           {[
             ['title',          'Title',          'text'],
             ['nav_order',      'Nav Order',      'number'],
-            ['required_level', 'Required Level', 'number'],
           ].map(([k, lbl, t]) => (
             <div key={k}>
               <label className="block text-xs text-gray-500 mb-1">{lbl}</label>
@@ -1933,6 +1986,16 @@ function MetaModal({ meta, onSave, onClose }) {
                 onChange={e => set(k, t === 'number' ? Number(e.target.value) : e.target.value)} />
             </div>
           ))}
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">Visible to groups</label>
+            <GroupMultiSel value={form.viewGroups} onChange={v => set('viewGroups', v || [])}
+              emptyText="None selected — every runtime screen can open this page" />
+            <p className="text-[10px] text-gray-400 mt-1 leading-snug">
+              When groups are selected, the runtime shows this page only after an operator of one of
+              them (or a group that inherits from one) logs in. Edit-mode users always see it.
+              Widgets keep their own edit groups for writes.
+            </p>
+          </div>
           <label className="flex items-center gap-2 text-xs text-gray-600 pt-1 cursor-pointer">
             <input type="checkbox" checked={!!form.is_home} onChange={e => set('is_home', e.target.checked)} />
             Set as home page (loaded at runtime startup)
@@ -2278,7 +2341,7 @@ export default function EditorPage() {
   const [widgets, setWidgets] = useState([])
   const [canvasWidth, setCanvasWidth] = useState(1024)
   const [canvasHeight, setCanvasHeight] = useState(768)
-  const [meta, setMeta] = useState({ title: '', nav_order: 0, required_level: 1, is_home: false })
+  const [meta, setMeta] = useState({ title: '', nav_order: 0, required_level: 1, viewGroups: [], is_home: false })
   // Grid overlay: shown on the editor canvas AND saved into the page definition so
   // the runtime honours the same preference. Default on.
   const [showGrid, setShowGrid] = useState(true)
@@ -2373,6 +2436,7 @@ export default function EditorPage() {
           title: data.title ?? '',
           nav_order: data.nav_order ?? 0,
           required_level: data.required_level ?? 1,
+          viewGroups: Array.isArray(data.viewGroups) ? data.viewGroups : [],
           is_home: !!data.is_home,
         }
         setWidgets(loadedWidgets)
